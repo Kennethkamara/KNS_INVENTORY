@@ -28,11 +28,15 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
 
             try {
-                const { user, error } = await supabaseApi.signIn(email, password);
+                // Use supabaseClient directly as requested
+                const { data, error: authError } = await supabaseClient.auth.signInWithPassword({
+                    email,
+                    password,
+                });
 
-                if (error) {
-                    console.error('Login error details:', error);
-                    let msg = error.message || 'Invalid email or password';
+                if (authError) {
+                    console.error('Login error details:', authError);
+                    let msg = authError.message || 'Invalid email or password';
                     if (msg === 'Failed to fetch') {
                         msg = 'Cannot connect to server. Check your internet connection and try again.';
                     }
@@ -40,10 +44,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     submitBtn.textContent = originalText;
                     submitBtn.disabled = false;
                 } else {
+                    // Fetch profile manually to use supabaseClient directly
+                    const { data: profile, error: profileError } = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('id', data.user.id)
+                        .single();
+
+                    if (profileError) {
+                        console.error('Profile fetch error:', profileError);
+                        showError(errorMsg, 'Login successful but profile record not found.');
+                        submitBtn.textContent = originalText;
+                        submitBtn.disabled = false;
+                        return;
+                    }
+
                     // Store user session
                     sessionStorage.setItem('isLoggedIn', 'true');
-                    sessionStorage.setItem('currentUser', JSON.stringify(user.profile));
-                    redirectBasedOnRole(user.profile);
+                    sessionStorage.setItem('currentUser', JSON.stringify(profile));
+                    redirectBasedOnRole(profile);
                 }
             } catch (err) {
                 console.error('Unexpected login error:', err);
@@ -82,23 +101,48 @@ document.addEventListener('DOMContentLoaded', () => {
             // Determine role (emails containing 'admin' are admins)
             const role = email.toLowerCase().includes('admin') ? 'admin' : 'staff';
 
-            const { user, error } = await supabaseApi.signUp(email, password, fullName, role);
+            try {
+                // Use supabaseClient directly for signup
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                    email,
+                    password,
+                });
 
-            if (error) {
-                showError(errorMsg, error.message || 'Failed to create account');
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-            } else {
+                if (authError) throw authError;
+
+                // Create user profile directly
+                const { data: profileData, error: profileError } = await supabaseClient
+                    .from('users')
+                    .insert([
+                        {
+                            id: authData.user.id,
+                            full_name: fullName,
+                            email: email,
+                            role: role
+                        }
+                    ])
+                    .select()
+                    .single();
+
+                if (profileError) throw profileError;
+
+                const newUser = { ...authData.user, profile: profileData };
+
                 // Store user session
                 sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('currentUser', JSON.stringify(user.profile));
+                sessionStorage.setItem('currentUser', JSON.stringify(newUser.profile));
                 
                 // Show success message
                 showError(errorMsg, 'Account created! Redirecting...', 'success');
                 
                 setTimeout(() => {
-                    redirectBasedOnRole(user.profile);
+                    redirectBasedOnRole(newUser.profile);
                 }, 1500);
+            } catch (error) {
+                console.error('Sign up error:', error);
+                showError(errorMsg, error.message || 'Failed to create account');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
             }
         });
     }
@@ -111,14 +155,28 @@ document.addEventListener('DOMContentLoaded', () => {
  * Check if user has existing session
  */
 async function checkExistingSession() {
-    const { user, error } = await supabaseApi.getCurrentUser();
-    
-    if (user && user.profile) {
-        sessionStorage.setItem('isLoggedIn', 'true');
-        sessionStorage.setItem('currentUser', JSON.stringify(user.profile));
-    } else {
+    try {
+        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+        
+        if (session && session.user) {
+            // Get profile
+            const { data: profile, error: profileError } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+            if (profile && !profileError) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('currentUser', JSON.stringify(profile));
+                return;
+            }
+        }
+        
         sessionStorage.removeItem('isLoggedIn');
         sessionStorage.removeItem('currentUser');
+    } catch (err) {
+        console.error('Session check error:', err);
     }
 }
 
@@ -169,17 +227,29 @@ async function checkAuth(requiredRole) {
     const loginPage = isSubdir ? '../signin.html' : 'signin.html';
     const pendingPage = isSubdir ? '../pending-approval.html' : 'pending-approval.html';
 
-    // Check Supabase session
-    const { user, error } = await supabaseApi.getCurrentUser();
+    // Check Supabase session directly
+    const { data: { session }, error: authError } = await supabaseClient.auth.getSession();
 
-    if (error || !user || !user.profile) {
+    if (authError || !session || !session.user) {
         sessionStorage.removeItem('isLoggedIn');
         sessionStorage.removeItem('currentUser');
         window.location.href = loginPage;
         return null;
     }
 
-    const profile = user.profile;
+    // Get user profile directly
+    const { data: profile, error: profileError } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+    if (profileError || !profile) {
+        sessionStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('currentUser');
+        window.location.href = loginPage;
+        return null;
+    }
 
     // Check approval status (Admins are usually auto-approved or bypass)
     if (profile.status !== 'approved' && profile.role.toLowerCase() !== 'admin') {
@@ -241,7 +311,7 @@ function initializeSidebarUI(user) {
  * Logout user
  */
 async function logout() {
-    await supabaseApi.signOut();
+    await supabaseClient.auth.signOut();
     sessionStorage.removeItem('isLoggedIn');
     sessionStorage.removeItem('currentUser');
     

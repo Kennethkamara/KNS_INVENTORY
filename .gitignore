@@ -1,5 +1,5 @@
 # Credentials
-supabase-config.js
+# supabase-config.js (Uncomment to ignore)
 .env
 .env.local
 .env.*.local
