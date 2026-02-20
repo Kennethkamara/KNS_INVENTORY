@@ -1,0 +1,103 @@
+<!-- 
+    TEMPLATE: How to Update Your HTML Pages for Supabase
+    
+    This template shows the required script tags and structure
+    for admin and user dashboard pages.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Page Title - KNS Inventory</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Your page content here -->
+    
+    <div class="container">
+        <h1 id="pageTitle">Dashboard</h1>
+        <p>Welcome, <span id="userName"></span></p>
+        
+        <!-- Example: Inventory Table -->
+        <table id="inventoryTable">
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Category</th>
+                    <th>Quantity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+                <!-- Data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- REQUIRED SCRIPTS (in this order) -->
+    
+    <!-- 1. Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- 2. Supabase Configuration -->
+    <script src="../supabase-config.js"></script>
+    
+    <!-- 3. API Service Layer -->
+    <script src="../api/supabase-api.js"></script>
+    
+    <!-- 4. Authentication Logic -->
+    <script src="../auth.js"></script>
+    
+    <!-- 5. Your Page-Specific Script -->
+    <script>
+        // Page initialization
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication (replace 'admin' with 'user' for user pages)
+            const currentUser = await checkAuth('admin');
+            if (!currentUser) return;
+            
+            // Display user name
+            document.getElementById('userName').textContent = currentUser.full_name;
+            
+            // Load data
+            await loadData();
+        });
+        
+        // Load your data
+        async function loadData() {
+            const { data, error } = await supabaseApi.getInventoryItems();
+            
+            if (error) {
+                console.error('Error:', error);
+                alert('Failed to load data');
+                return;
+            }
+            
+            // Display data
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.item_name}</td>
+                    <td>${item.category}</td>
+                    <td>${item.quantity}</td>
+                    <td>
+                        <button onclick="editItem('${item.id}')">Edit</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Example function
+        async function editItem(itemId) {
+            // Your edit logic here
+            console.log('Editing item:', itemId);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit New Request - KNS Inventory</title>
+    <link rel="stylesheet" href="../admin/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="../images/logo.png" alt="KNS Logo" class="logo-img">
+                    <span class="logo-name">KNS Inventory</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li onclick="window.location.href='index.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                        <span>Dashboard</span>
+                    </li>
+                    <li onclick="window.location.href='myinventory.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 13H4v-2h16v2zm0-4H4V7h16v2zm0 8H4v-2h16v2zM4 3v2h16V3H4z"/></svg>
+                        <span>My Inventory</span>
+                    </li>
+                    <li class="active" onclick="window.location.href='submit-request.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm0 7V3.5L18.5 9H14zM8 13h8v2H8v-2zm0 4h8v2H8v-2z"/></svg>
+                        <span>Submit Request</span>
+                    </li>
+                    <li onclick="window.location.href='myrequests.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-2h2v2zm0-4H7v-2h2v2zm0-4H7V7h2v2zm8 8h-6v-2h6v2zm0-4h-6v-2h6v2zm0-4h-6V7h6v2z"/></svg>
+                        <span>My Requests</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="footer-divider"></div>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="displayUserName">...</span>
+                        <span class="user-role">Staff</span>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Submit New Request</h1>
+                <p>Fill out the form below to submit a new inventory request.</p>
+            </header>
+
+            <section class="dashboard-card">
+                <div class="section-header">
+                    <h2>Request Details</h2>
+                </div>
+                <form id="submitRequestForm">
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h2>
+                                <i class="fas fa-file-alt" style="margin-right:8px;"></i>
+                                Request Information
+                            </h2>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="request-type">Request Type</label>
+                                <select id="request-type" required>
+                                    <option value="" disabled selected>Select request type</option>
+                                    <option value="new">New Request</option>
+                                    <option value="replacement">Replacement</option>
+                                    <option value="repair">Repair</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="department">Department</label>
+                                <input type="text" id="department" value="IT Department" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="requested-by">Requested By</label>
+                                <input type="text" id="requested-by" value="..." readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="priority">Priority</label>
+                                <select id="priority" required>
+                                    <option value="" disabled selected>Select priority</option>
+                                    <option value="normal">Normal</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h2>
+                                <i class="fas fa-box" style="margin-right:8px;"></i>
+                                Item Details
+                            </h2>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="item-name">Item Name</label>
+                                <input type="text" id="item-name" placeholder="Enter item name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="category">Category</label>
+                                <select id="category" required>
+                                    <option value="" disabled selected>Select category</option>
+                                    <option value="computers">Computers</option>
+                                    <option value="electronics">Electronics</option>
+                                    <option value="peripherals">Peripherals</option>
+                                    <option value="furniture">Furniture</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="quantity">Quantity</label>
+                                <input type="number" id="quantity" min="1" value="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="required-date">Required Date</label>
+                                <input type="date" id="required-date" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h2>
+                                <i class="fas fa-sticky-note" style="margin-right:8px;"></i>
+                                Additional Information
+                            </h2>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="description">Description</label>
+                                <textarea id="description" rows="4" placeholder="Please provide details about your request, including any specific requirements or constraints."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-footer">
+                        <button type="button" id="cancelBtn" class="btn-cancel">Cancel</button>
+                        <button type="submit" id="submitBtn" class="btn-submit">Submit Request</button>
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
+
+
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Supabase Configuration -->
+    <script src="../supabase-config.js"></script>
+    <!-- API Service Layer -->
+    <script src="../api/supabase-api.js"></script>
+    <!-- Authentication Logic -->
+    <script src="../auth.js"></script>
+    <script src="user.js"></script>
+    <script>
+        let currentUser = null;
+        
+        document.addEventListener('DOMContentLoaded', async function () {
+            // Check authentication
+            currentUser = await checkAuth('user');
+            if (!currentUser) return;
+            
+            // Update user info
+            const nameEl = document.getElementById('displayUserName');
+            if (nameEl) nameEl.textContent = currentUser.full_name;
+            
+            document.getElementById('requested-by').value = currentUser.full_name;
+            const deptInput = document.getElementById('department');
+            if (deptInput && currentUser.department) {
+                deptInput.value = currentUser.department;
+            }
+            
+            // Handle form submission
+            const form = document.getElementById('submitRequestForm');
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                await submitRequest();
+            });
+            
+            // Handle cancel
+            document.getElementById('cancelBtn').addEventListener('click', function (e) {
+                e.preventDefault();
+                window.location.href = 'myrequests.html';
+            });
+            
+            // Load available inventory items for selection
+            await loadInventoryItems();
+        });
+        
+        async function loadInventoryItems() {
+            const { data, error } = await supabaseApi.getInventoryItems();
+            if (error) {
+                console.error('Error loading inventory:', error);
+                return;
+            }
+            
+            // Populate item name dropdown
+            const itemNameInput = document.getElementById('item-name');
+            const datalist = document.createElement('datalist');
+            datalist.id = 'item-suggestions';
+            
+            data.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.item_name;
+                datalist.appendChild(option);
+            });
+            
+            itemNameInput.setAttribute('list', 'item-suggestions');
+            itemNameInput.parentNode.appendChild(datalist);
+        }
+        
+        async function submitRequest() {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            const itemName = document.getElementById('item-name').value;
+            const category = document.getElementById('category').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const description = document.getElementById('description').value;
+            const priority = document.getElementById('priority').value;
+            
+            // First, check if item exists or create it
+            let { data: items } = await supabaseApi.getInventoryItems({ search: itemName });
+            let itemId;
+            
+            if (items && items.length > 0) {
+                itemId = items[0].id;
+            } else {
+                // Create new item request (admin will need to approve)
+                const { data: newItem, error: createError } = await supabaseApi.createInventoryItem({
+                    item_name: itemName,
+                    category: category,
+                    quantity: 0, // Start with 0, will be updated when request is fulfilled
+                    unit: 'units',
+                    condition: 'new',
+                    min_stock_level: 0
+                });
+                
+                if (createError) {
+                    alert('Error creating item: ' + createError.message);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Request';
+                    return;
+                }
+                
+                itemId = newItem.id;
+            }
+            
+            // Create the request
+            const requestData = {
+                user_id: currentUser.id,
+                item_id: itemId,
+                quantity: quantity,
+                reason: description || `${priority} priority request for ${itemName}`,
+                status: 'pending',
+                department: currentUser.department || 'General' // Default to user's department
+            };
+            
+            const { data, error } = await supabaseApi.createRequest(requestData);
+            
+            if (error) {
+                console.error('Error submitting request:', error);
+                alert('Failed to submit request: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Request';
+                return;
+            }
+            
+            alert('Request submitted successfully!');
+            window.location.href = 'myrequests.html';
+        }
+    </script>
+</body>
+</html>

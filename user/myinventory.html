@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Inventory - KNS Inventory</title>
+    <link rel="stylesheet" href="../admin/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="../images/logo.png" alt="KNS Logo" class="logo-img">
+                    <span class="logo-name">KNS Inventory</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li onclick="window.location.href='index.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                        <span>Dashboard</span>
+                    </li>
+                    <li class="active" onclick="window.location.href='myinventory.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 13H4v-2h16v2zm0-4H4V7h16v2zm0 8H4v-2h16v2zM4 3v2h16V3H4z"/></svg>
+                        <span>My Inventory</span>
+                    </li>
+                    <li onclick="window.location.href='submit-request.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm0 7V3.5L18.5 9H14zM8 13h8v2H8v-2zm0 4h8v2H8v-2z"/></svg>
+                        <span>Submit Request</span>
+                    </li>
+                    <li onclick="window.location.href='myrequests.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-2h2v2zm0-4H7v-2h2v2zm0-4H7V7h2v2zm8 8h-6v-2h6v2zm0-4h-6v-2h6v2zm0-4h-6V7h6v2z"/></svg>
+                        <span>My Requests</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="footer-divider"></div>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="displayUserName">...</span>
+                        <span class="user-role">Staff</span>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="window.location.href='../signin.html'">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>My Assigned Items</h1>
+                <p>Items currently assigned to you or your department</p>
+            </header>
+
+            <section class="dashboard-card">
+                <div class="section-header">
+                    <h2>Inventory List</h2>
+                    <div class="filter-bar">
+                        <button class="table-action-btn" id="filterBtn" type="button">
+                            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M4 4h16v2l-6 7v5l-4 2v-7L4 6z"/>
+                            </svg>
+                            <span>Filter</span>
+                        </button>
+                        <input
+                            type="text"
+                            id="filterInput"
+                            class="filter-input"
+                            placeholder="Search inventory..."
+                        />
+                        <button class="table-action-btn" id="exportBtn" type="button">
+                            <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M5 20h14v-2H5v2zm7-18l-5 5h3v6h4V7h3l-5-5z"/>
+                            </svg>
+                            <span>Export</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="inventory-table-container">
+                    <table class="inventory-table my-inventory-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Category</th>
+                                <th>Assigned To</th>
+                                <th>Status</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be loaded from Supabase -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="dashboard-card">
+                <h2>Inventory Summary</h2>
+                <div class="inventory-summary">
+                    <div class="summary-card">
+                        <i class="fas fa-laptop" style="color:#0079d8;"></i>
+                        <h4>Total Items</h4>
+                        <p data-stat="total">0</p>
+                    </div>
+                    <div class="summary-card">
+                        <i class="fas fa-check-circle" style="color:#34a853;"></i>
+                        <h4>Available</h4>
+                        <p data-stat="available">0</p>
+                    </div>
+                    <div class="summary-card">
+                        <i class="fas fa-exclamation-triangle" style="color:#f79c1b;"></i>
+                        <h4>Out of Stock</h4>
+                        <p data-stat="oos">0</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="user.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../supabase-config.js"></script>
+    <script src="../api/supabase-api.js"></script>
+    <script src="../auth.js"></script>
+    <script src="myinventory.js"></script>
+</body>
+</html>
+
+

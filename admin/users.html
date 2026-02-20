@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users & Roles - KNS Inventory</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="../images/logo.png" alt="KNS Logo" class="logo-img">
+                    <span class="logo-name">KNS Inventory</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li onclick="window.location.href='index.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                        <span>Dashboard</span>
+                    </li>
+                    <li onclick="window.location.href='inventory.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 13H4v-2h16v2zm0-4H4V7h16v2zm0 8H4v-2h16v2zM4 3v2h16V3H4z"/></svg>
+                        <span>Inventory</span>
+                    </li>
+                    <li onclick="window.location.href='stockmovement.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z"/></svg>
+                        <span>Stock Movement</span>
+                    </li>
+                    <li onclick="window.location.href='requests.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                        <span>Requests & Approvals</span>
+                    </li>
+                    <li onclick="window.location.href='reports.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                        <span>Reports</span>
+                    </li>
+                    <li class="active" onclick="window.location.href='users.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                        <span>Users & Roles</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="footer-divider"></div>
+                <div class="user-profile" onclick="window.location.href='profile.html'" style="cursor: pointer;">
+                    <div class="user-avatar">
+                        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="displayUserName">Admin User</span>
+                        <span class="user-role">Administrator</span>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Users & Roles</h1>
+                <p>Manage user accounts and permissions</p>
+            </header>
+
+            <!-- User Management Section -->
+            <div class="user-mgmt-card">
+                <div class="user-mgmt-header">
+                    <h2>User Management</h2>
+                    <button class="btn-add-user" onclick="openUserModal()">Add New User</button>
+                </div>
+
+                <table class="inventory-table user-table" id="user-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-list">
+                        <!-- Users will be loaded from Supabase -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <div id="user-modal" class="modal">
+        <!-- ... existing add user modal ... -->
+        <div class="modal-content user-modal">
+            <!-- (Content remains same for Add User) -->
+            <div class="modal-header">
+                <h2 id="modal-title">Add New User</h2>
+                <span class="close-modal" onclick="closeUserModal()">&times;</span>
+            </div>
+            <!-- ... (wizard steps) ... -->
+            <div class="step-indicator">
+                <div class="step-indicator-step active" data-step="1">
+                    <div class="step-indicator-circle">1</div>
+                    <div class="step-indicator-label">Personal Info</div>
+                </div>
+                <div class="step-indicator-line"></div>
+                <div class="step-indicator-step" data-step="2">
+                    <div class="step-indicator-circle">2</div>
+                    <div class="step-indicator-label">Role & Access</div>
+                </div>
+                <div class="step-indicator-line"></div>
+                <div class="step-indicator-step" data-step="3">
+                    <div class="step-indicator-circle">3</div>
+                    <div class="step-indicator-label">Review</div>
+                </div>
+                <div class="step-indicator-line"></div>
+                <div class="step-indicator-step" data-step="4">
+                    <div class="step-indicator-circle">4</div>
+                    <div class="step-indicator-label">Success</div>
+                </div>
+            </div>
+            <form id="user-form" onsubmit="handleUserSubmit(event)">
+                <input type="hidden" id="user-id">
+                
+                <!-- Step 1: Personal Info -->
+                <div class="user-step active" data-step="1">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="user-first-name">First Name</label>
+                            <input type="text" id="user-first-name" required placeholder="Enter first name">
+                        </div>
+                        <div class="form-group">
+                            <label for="user-last-name">Last Name</label>
+                            <input type="text" id="user-last-name" required placeholder="Enter last name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="user-email">Email Address</label>
+                        <input type="email" id="user-email" required placeholder="Enter email address">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-phone">Phone Number</label>
+                        <input type="tel" id="user-phone" placeholder="e.g. +232 00 000 000">
+                    </div>
+                </div>
+
+                <!-- Step 2: Role & Access -->
+                <div class="user-step" data-step="2">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="user-role">Assign Role</label>
+                            <select id="user-role" required onchange="checkNewUserOption(this, 'role')">
+                                <option value="">Select a role...</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Staff">Staff</option>
+                                <option value="-add-new-">-add new-</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="user-dept">Assign Department</label>
+                            <select id="user-dept" required onchange="checkNewUserOption(this, 'department')">
+                                <option value="">Choose department...</option>
+                                <option value="BroadConnect">BroadConnect</option>
+                                <option value="KNS College">KNS College</option>
+                                <option value="KNS Office">KNS Office</option>
+                                <option value="KNS Test Center">KNS Test Center</option>
+                                <option value="Warehouse / Store">Warehouse / Store</option>
+                                <option value="Administration">Administration</option>
+                                <option value="-add-new-">-add new-</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="module-access-group">
+                        <div class="module-access-title">Module Access</div>
+                        <div class="module-access-options">
+                            <label class="module-access-option">
+                                <input type="checkbox" name="user-modules" value="inventory">
+                                <div>
+                                    <span style="font-weight: 600; display: block;">Inventory</span>
+                                    <span class="module-access-description">Control and view assets across all departments</span>
+                                </div>
+                            </label>
+                            <label class="module-access-option">
+                                <input type="checkbox" name="user-modules" value="stock">
+                                <div>
+                                    <span style="font-weight: 600; display: block;">Stock Movement</span>
+                                    <span class="module-access-description">Record and track item logs and movements</span>
+                                </div>
+                            </label>
+                            <label class="module-access-option">
+                                <input type="checkbox" name="user-modules" value="reports">
+                                <div>
+                                    <span style="font-weight: 600; display: block;">Reports</span>
+                                    <span class="module-access-description">View and generate high-level analytics</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Review & Confirm -->
+                <div class="user-step" data-step="3">
+                    <div class="confirmation-text">Please verify the details below before creating the user account.</div>
+                    <div class="confirmation-grid">
+                        <div class="confirmation-group">
+                            <div class="confirmation-label">Full Name</div>
+                            <div class="confirmation-value" id="summary-name"></div>
+                        </div>
+                        <div class="confirmation-group">
+                            <div class="confirmation-label">Email Address</div>
+                            <div class="confirmation-value" id="summary-email" style="color: var(--primary-blue);"></div>
+                        </div>
+                        <div class="confirmation-group">
+                            <div class="confirmation-label">Phone Number</div>
+                            <div class="confirmation-value" id="summary-phone"></div>
+                        </div>
+                        <div class="confirmation-group">
+                            <div class="confirmation-label">Assigned Role</div>
+                            <div class="confirmation-value" id="summary-role"></div>
+                        </div>
+                        <div class="confirmation-group" style="grid-column: span 2;">
+                            <div class="confirmation-label">Module Access</div>
+                            <div class="confirmation-value" id="summary-modules"></div>
+                        </div>
+                    </div>
+                    <div class="important-notice" style="margin-top: 20px; font-size: 0.8rem; color: #666; display: flex; gap: 10px; align-items: flex-start; background: #eef6ff; padding: 12px; border-radius: 8px;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#0079d8"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
+                        <span>An invitation email with setup instructions will be sent to the user's email address immediately after creation.</span>
+                    </div>
+                </div>
+
+                <!-- Step 4: Success -->
+                <div class="user-step" data-step="4">
+                    <div class="success-screen" style="text-align: center; padding: 20px 0;">
+                        <div class="success-icon" style="width: 80px; height: 80px; background: #e6f4ea; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                            <svg viewBox="0 0 24 24" width="48" height="48" fill="#34a853"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                        </div>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 10px;">User Successfully Created!</h2>
+                        <p style="color: #666; margin-bottom: 30px;"><strong><span id="created-user-name">John Smith</span></strong> has been invited as a <span id="created-user-dept">IT Department</span> Staff member.</p>
+                        
+                        <div class="success-actions" style="display: flex; flex-direction: column; gap: 12px;">
+                            <button type="button" class="btn-primary" style="width: 100%; border-radius: 30px;" onclick="closeUserModal()">Go to Dashboard</button>
+                            <button type="button" class="btn-secondary" style="border: none; background: none; color: #0079d8; font-weight: 600;" onclick="openUserModal()">Add Another User</button>
+                        </div>
+                        <p style="font-size: 0.8rem; color: #999; margin-top: 30px;">Need to manage permissions later? Visit <a href="#" style="color: #0079d8; text-decoration: none;">User Role Settings</a></p>
+                    </div>
+                </div>
+
+                <div class="modal-footer" id="wizard-footer">
+                    <button type="button" class="btn-secondary" id="user-back-btn" onclick="prevUserStep()" style="display: none;">Back</button>
+                    <div class="modal-footer-actions">
+                        <button type="button" class="btn-secondary" id="user-cancel-btn" onclick="closeUserModal()">Cancel</button>
+                        <button type="button" class="btn-next" id="user-next-btn" onclick="nextUserStep()">Next</button>
+                        <button type="submit" class="btn-primary" id="user-submit-btn" style="display: none;">Create User</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal (Landscape) -->
+    <div id="edit-user-modal" class="modal">
+        <div class="modal-content premium-modal" style="width: 800px; max-width: 95vw;">
+            <div class="modal-header">
+                <div class="header-content">
+                    <div class="header-icon" style="background: #e8f0fe;">
+                        <svg viewBox="0 0 24 24" fill="#1967d2"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    </div>
+                    <div class="header-text">
+                        <h2>Edit User</h2>
+                        <p>Update user details and permissions</p>
+                    </div>
+                </div>
+                <span class="close-modal" onclick="closeEditUserModal()">&times;</span>
+            </div>
+            <form id="edit-user-form" onsubmit="handleEditUserSubmit(event)">
+                <input type="hidden" id="edit-user-id">
+                
+                <div class="modal-grid-2">
+                    <!-- Left Column: Personal Info -->
+                    <div>
+                        <h3 class="section-title" style="font-size: 0.95rem; color: #666; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Personal Information</h3>
+                        
+                        <div class="form-group">
+                            <label for="edit-user-name">Full Name</label>
+                            <input type="text" id="edit-user-name" required placeholder="Enter full name">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-user-email">Email Address</label>
+                            <input type="email" id="edit-user-email" required placeholder="Enter email address" disabled style="background: #f5f5f5; cursor: not-allowed;">
+                            <small style="color: #888; font-size: 0.75rem;">Email cannot be changed.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-user-phone">Phone Number</label>
+                            <input type="tel" id="edit-user-phone" placeholder="Enter phone number">
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Role & Access -->
+                    <div>
+                        <h3 class="section-title" style="font-size: 0.95rem; color: #666; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Role & Access</h3>
+
+                         <div class="form-group">
+                            <label for="edit-user-role">Role</label>
+                            <select id="edit-user-role" required>
+                                <option value="admin">Admin</option>
+                                <option value="staff">Staff</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-user-dept">Department</label>
+                             <select id="edit-user-dept" required>
+                                <option value="">Select Department</option>
+                                <option value="IT Department">IT Department</option>
+                                <option value="Human Resources">Human Resources</option>
+                                <option value="Administration">Administration</option>
+                                <option value="Finance">Finance</option>
+                                <option value="College">College</option>
+                            </select>
+                        </div>
+
+                         <div class="form-group">
+                            <label for="edit-user-status">Status</label>
+                            <select id="edit-user-status" required>
+                                <option value="active">Active</option>
+                                <option value="suspended">Suspended</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer premium-footer">
+                    <button type="button" class="btn-cancel" onclick="closeEditUserModal()">Cancel</button>
+                    <button type="submit" class="btn-submit" id="edit-submit-btn">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-user-modal" class="modal">
+        <div class="modal-content premium-modal" style="width: 400px; padding: 0;">
+            <div style="padding: 25px; text-align: center;">
+                <div style="width: 60px; height: 60px; background: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="#dc2626"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                </div>
+                <h3 style="margin-bottom: 10px; color: #1f2937;">Delete User?</h3>
+                <p style="color: #6b7280; font-size: 0.95rem; line-height: 1.5;">Are you sure you want to delete <strong id="delete-user-name">this user</strong>? This action cannot be undone.</p>
+            </div>
+            <div style="background: #f9fafb; padding: 15px 25px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 10px; border-radius: 0 0 15px 15px;">
+                <button onclick="closeDeleteModal()" style="padding: 10px 20px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; font-weight: 500; color: #374151;">Cancel</button>
+                <button onclick="confirmDeleteUser()" style="padding: 10px 20px; border: none; background: #dc2626; color: white; border-radius: 6px; cursor: pointer; font-weight: 500;">Delete User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../supabase-config.js"></script>
+    <script src="../api/supabase-api.js"></script>
+    
+    <!-- UI Utilities -->
+    <script src="../ui-utils.js"></script>
+    
+    <!-- Authentication -->
+    <script src="../auth.js"></script>
+    <script>
+        // Check authentication on load
+        (async () => {
+            const user = await checkAuth('admin');
+            if (user && user.full_name) {
+                const displayEl = document.getElementById('displayUserName');
+                if (displayEl) displayEl.textContent = user.full_name;
+            }
+        })();
+    </script>
+    
+    <!-- Page Logic -->
+    <script src="users.js"></script>
+</body>
+</html>
