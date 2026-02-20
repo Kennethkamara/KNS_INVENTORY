@@ -1,0 +1,13 @@
+# Credentials
+supabase-config.js
+.env
+.env.local
+.env.*.local
+*.local
+
+# Dependencies
+node_modules/
+
+# OS Files
+.DS_Store
+Thumbs.db
