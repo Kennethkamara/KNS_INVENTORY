@@ -71,7 +71,7 @@ INVENTORY/
 ├── supabase-config.js      # Supabase configuration
 ├── schema.sql              # Database schema
 ├── api/
-│   └── supabase-api.js     # API service layer
+├── api-service.js          # API service layer
 ├── admin/                  # Admin dashboard
 │   ├── index.html
 │   ├── inventory.html

@@ -3,6 +3,14 @@
  * Replaces localStorage-based auth with Supabase Auth
  */
 
+// Safety shim for global API access
+if (typeof supabaseApi === 'undefined' && window.supabaseApi) {
+    window.supabaseApi = window.supabaseApi;
+} else if (typeof supabaseApi === 'undefined') {
+    // If not loaded yet, create a proxy or placeholder to prevent crashes
+    window.supabaseApi = window.supabaseApi || {};
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Fast Sidebar Init from local storage to prevent flickering
     const cachedUser = getCurrentUserFromSession();
