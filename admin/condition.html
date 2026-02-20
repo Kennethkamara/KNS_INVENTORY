@@ -15,6 +15,9 @@
                     <img src="../images/logo.png" alt="KNS Logo" class="logo-img">
                     <span class="logo-name">KNS Inventory</span>
                 </div>
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                </button>
             </div>
             
             <nav class="sidebar-nav">
@@ -54,7 +57,7 @@
                     </div>
                     <div class="user-info">
                         <span class="user-name" id="displayUserName">Admin User</span>
-                        <span class="user-role">Administrator</span>
+                        <span class="user-role" id="displayUserRole">Administrator</span>
                     </div>
                 </div>
                 <button class="logout-btn" onclick="logout()">
@@ -102,16 +105,28 @@
         </main>
     </div>
 
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Supabase Configuration -->
+    <script src="../supabase-config.js"></script>
+    <!-- API Service Layer -->
+    <script src="../api/supabase-api.js"></script>
+    <!-- UI Utilities -->
+    <script src="../ui-utils.js"></script>
+    <!-- Authentication -->
     <script src="../auth.js"></script>
     <script>
         // Check authentication
-        const user = checkAuth('admin');
-        if (user && user.full_name) {
-            document.getElementById('displayUserName').textContent = user.full_name;
-        }
+        (async () => {
+            const user = await checkAuth('admin');
+            if (user && user.full_name) {
+                document.getElementById('displayUserName').textContent = user.full_name;
+            }
+        })();
 
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
+        async function logout() {
+            const confirmed = await showConfirm('Are you sure you want to logout?');
+            if (confirmed) {
                 localStorage.removeItem('currentUser');
                 window.location.href = '../index.html';
             }

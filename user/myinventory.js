@@ -3,7 +3,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const user = await checkAuth('user');
+    const user = await checkAuth('staff');
     if (!user) return;
     
     // Display logged-in user's name
@@ -27,7 +27,7 @@ async function loadMyInventory() {
     
     if (error) {
         console.error('Error loading inventory:', error);
-        alert('Failed to load inventory');
+        await showAlert('Failed to load inventory', 'Error');
         return;
     }
     
@@ -65,14 +65,16 @@ function displayInventory(items) {
         const availabilityClass = item.quantity > item.min_stock_level ? 'available' : 'low-stock';
         
         row.innerHTML = `
-            <td>${item.item_name}</td>
+            <td><strong>${item.item_name}</strong></td>
             <td>${item.category}</td>
-            <td>${item.quantity} ${item.unit || ''}</td>
-            <td><span class="badge ${availabilityClass}">${item.quantity > 0 ? 'Available' : 'Out of Stock'}</span></td>
+            <td>${item.quantity} ${item.unit || 'pcs'}</td>
+            <td><span class="status-badge ${availabilityClass}">${item.quantity > 0 ? 'Available' : 'Out of Stock'}</span></td>
             <td>
                 ${item.quantity > 0 ? `
-                    <button class="btn-request" onclick="requestItem('${item.id}', '${item.item_name}')">Request</button>
-                ` : '-'}
+                    <button class="btn-request" onclick="requestItem('${item.id}', '${item.item_name}')">
+                        <i class="fas fa-paper-plane"></i> Request
+                    </button>
+                ` : '<span class="text-muted">-</span>'}
             </td>
         `;
         
@@ -83,10 +85,16 @@ function displayInventory(items) {
 
 
 async function requestItem(itemId, itemName) {
-    const quantity = prompt(`How many ${itemName} do you need?`, '1');
-    if (!quantity || parseInt(quantity) <= 0) return;
+    const quantity = await showPrompt(`How many ${itemName} do you need?`, '1');
+    if (quantity === null) return; // Cancelled
     
-    const reason = prompt('Reason for request (optional):');
+    if (!quantity || parseInt(quantity) <= 0) {
+        showToast('Please enter a valid quantity', 'warning');
+        return;
+    }
+    
+    const reason = await showPrompt('Reason for request (if any):', `Request for ${itemName}`);
+    if (reason === null) return; // Cancelled
     
     const user = JSON.parse(sessionStorage.getItem('currentUser'));
     
@@ -96,18 +104,18 @@ async function requestItem(itemId, itemName) {
         quantity: parseInt(quantity),
         reason: reason || `Request for ${itemName}`,
         status: 'pending',
-        department: user.department || 'General' // Default to user's department
+        department: user.department || 'General'
     };
     
     const { error } = await supabaseApi.createRequest(requestData);
     
     if (error) {
         console.error('Error creating request:', error);
-        alert('Failed to create request');
+        showToast('Failed to create request', 'error');
         return;
     }
     
-    alert('Request submitted successfully!');
+    showToast('Request submitted successfully!', 'success');
 }
 
 function searchInventory() {

@@ -1,8 +1,8 @@
 /**
- * Admin Profile Management
+ * User Profile Management (Staff)
  */
 
-let currentAdmin = null;
+let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Fast Init for local profile page to prevent flickering
@@ -11,10 +11,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateProfileUI(cachedUser);
     }
 
-    const user = await checkAuth('admin');
+    const user = await checkAuth('staff'); // Ensure staff access
     if (!user) return;
     
-    currentAdmin = user;
+    currentUser = user;
     updateProfileUI(user);
     
     // Form Listener
@@ -65,12 +65,12 @@ async function handleProfileUpdate(e) {
     saveBtn.disabled = true;
 
     try {
-        let avatarUrl = currentAdmin.avatar_url;
+        let avatarUrl = currentUser.avatar_url;
 
         // 1. Handle Avatar Upload
         if (avatarFile) {
             const fileExt = avatarFile.name.split('.').pop();
-            const filePath = `${currentAdmin.id}/avatar.${fileExt}`;
+            const filePath = `${currentUser.id}/avatar.${fileExt}`;
             
             const { error: uploadError } = await supabaseApi.uploadImage(avatarFile, filePath);
             if (uploadError) throw uploadError;
@@ -79,8 +79,8 @@ async function handleProfileUpdate(e) {
         }
 
         // 2. Update Profile Data
-        const { data: updatedProfile, error } = await supabaseApi.updateUserProfile(currentAdmin.id, {
-            ...currentAdmin,
+        const { data: updatedProfile, error } = await supabaseApi.updateUserProfile(currentUser.id, {
+            ...currentUser,
             full_name: fullName,
             phone: phone,
             avatar_url: avatarUrl
@@ -89,13 +89,15 @@ async function handleProfileUpdate(e) {
         if (error) throw error;
 
         // 3. Update State and UI
-        currentAdmin = { ...currentAdmin, ...updatedProfile };
-        sessionStorage.setItem('currentUser', JSON.stringify(currentAdmin));
+        currentUser = { ...currentUser, ...updatedProfile };
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
         
         showToast('Profile updated successfully!', 'success');
         
         // Update sidebar and preview
-        initializeSidebarUI(currentAdmin);
+        if (window.initializeSidebarUI) {
+            initializeSidebarUI(currentUser);
+        }
         
     } catch (error) {
         console.error('Error updating profile:', error);

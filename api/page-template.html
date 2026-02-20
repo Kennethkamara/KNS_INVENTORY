@@ -50,7 +50,10 @@
     <!-- 4. Authentication Logic -->
     <script src="../auth.js"></script>
     
-    <!-- 5. Your Page-Specific Script -->
+    <!-- 5. UI Utilities -->
+    <script src="../ui-utils.js"></script>
+    
+    <!-- 6. Your Page-Specific Script -->
     <script>
         // Page initialization
         document.addEventListener('DOMContentLoaded', async () => {
@@ -71,7 +74,7 @@
             
             if (error) {
                 console.error('Error:', error);
-                alert('Failed to load data');
+                await showAlert('Failed to load data', 'Error');
                 return;
             }
             

@@ -16,6 +16,9 @@
                     <img src="../images/logo.png" alt="KNS Logo" class="logo-img">
                     <span class="logo-name">KNS Inventory</span>
                 </div>
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                </button>
             </div>
             
             <nav class="sidebar-nav">
@@ -55,7 +58,7 @@
                     </div>
                     <div class="user-info">
                         <span class="user-name" id="displayUserName">Admin User</span>
-                        <span class="user-role">Administrator</span>
+                        <span class="user-role" id="displayUserRole">Administrator</span>
                     </div>
                 </div>
                 <button class="logout-btn" onclick="logout()">
@@ -113,6 +116,7 @@
                                 <th>Destination (To)</th>
                                 <th>Performed By</th>
                                 <th>Remarks</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="movements-list">
@@ -142,6 +146,66 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Movement Info Modal -->
+    <div id="movement-info-modal" class="modal">
+        <div class="modal-content premium-modal" style="width: 500px;">
+            <div class="modal-header">
+                <div class="header-content">
+                    <div class="header-icon view-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v8z"/></svg>
+                    </div>
+                    <div class="header-text">
+                        <h2 id="info-ref-id">Movement Details</h2>
+                        <p id="info-date" class="text-muted">Loading details...</p>
+                    </div>
+                </div>
+                <span class="close-modal" onclick="closeInfoModal()">&times;</span>
+            </div>
+            
+            <div class="view-modal-body">
+                <div class="info-details-box">
+                    <div class="detail-row">
+                        <span class="label">Item Name:</span>
+                        <span class="value" id="info-item-name">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">SKU/ID:</span>
+                        <span class="value" id="info-item-id">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Type:</span>
+                        <span id="info-type" class="mv-badge">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">From:</span>
+                        <span class="value" id="info-from">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">To:</span>
+                        <span class="value" id="info-to">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Handled By:</span>
+                        <span class="value" id="info-user">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Quantity:</span>
+                        <span class="value" id="info-qty">-</span>
+                    </div>
+                </div>
+                
+                <div class="item-description-box" style="margin-top: 15px;">
+                    <h3>Remarks / Notes</h3>
+                    <p id="info-remarks" class="description-text">-</p>
+                </div>
+            </div>
+
+            <div class="modal-footer premium-footer">
+                <button type="button" class="btn-cancel" onclick="closeInfoModal()">Close</button>
+            </div>
+        </div>
     </div>
 
     <!-- Record Movement Modal -->
@@ -191,6 +255,7 @@
                         <label for="mv-person">Person <span class="required">*</span></label>
                         <div class="searchable-select">
                             <input type="text" id="mv-person" placeholder="Type to select user or enter name..." autocomplete="off">
+                            <input type="hidden" id="mv-person-id">
                             <div id="mv-person-dropdown" class="custom-dropdown-list">
                                 <!-- Options populated by JS -->
                             </div>

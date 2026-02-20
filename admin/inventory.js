@@ -110,37 +110,84 @@ function populateFilterDropdowns() {
 // LOAD INVENTORY ITEMS
 // ============================================
 async function loadInventoryItems() {
-    const { data, error } = await supabaseApi.getInventoryItems();
-    
-    // Instead of showing error, just treat as empty/no items
-    if (error) {
-        console.warn('Inventory fetch suppressed error:', error);
+    const noResultsEl = document.getElementById('no-results');
+    console.log('--- Loading Inventory Items ---');
+    try {
+        const { data, error } = await supabaseApi.getInventoryItems();
+        
+        console.log('Raw Supabase Response:', { data, error });
+
+        if (error) {
+            console.error('Inventory fetch error details:', error);
+            inventoryItems = [];
+            if (noResultsEl) {
+                noResultsEl.style.display = 'block';
+                noResultsEl.style.color = 'red';
+                noResultsEl.innerHTML = `⚠️ <b>Database Error:</b> ${error.message || 'Check connection'}<br><small>Code: ${error.code || 'unknown'}</small>`;
+            }
+        } else {
+            console.log(`Successfully fetched ${data?.length || 0} items from database.`);
+            inventoryItems = data || [];
+            
+            if (inventoryItems.length === 0 && data.length > 0) {
+                 console.log('All items were filtered out by condition rules.');
+            }
+        }
+    } catch (err) {
+        console.error('Fatal crash during inventory fetch:', err);
         inventoryItems = [];
-    } else {
-        // Filter out Lost/Stolen/Damaged items from active inventory
-        inventoryItems = (data || []).filter(item => {
-            const condition = (item.condition || '').toLowerCase();
-            return condition !== 'lost' && condition !== 'stolen' && 
-                   condition !== 'damaged' && condition !== 'lost/stolen';
-        });
+        if (noResultsEl) {
+            noResultsEl.style.display = 'block';
+            noResultsEl.style.color = 'red';
+            noResultsEl.textContent = '⚠️ Fatal Error: ' + err.message;
+        }
     }
     
-    applyFilters(); // This will trigger 'No items found' if array is empty
+    applyFilters(); 
     updateSummaryCards();
+    refreshDropdowns();
 }
 
 // ============================================
 // SUMMARY CARDS
 // ============================================
 function updateSummaryCards() {
+    // Total Items: Count of distinct records/rows
     const totalItems = inventoryItems.length;
-    const issuedItems = inventoryItems.filter(item => (item.status || '').toLowerCase() === 'issued').length;
-    const availableItems = inventoryItems.filter(item => (item.status || 'available').toLowerCase() !== 'issued').length;
+    
+    // Total Quantity: Sum of all units across all items
+    const totalQty = inventoryItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    
+    // Issued/Assigned: Sum of quantities for items with assigned/issued status
+    const assignedQty = inventoryItems.filter(item => {
+        const s = (item.status || '').toLowerCase();
+        return s === 'issued' || s === 'assigned';
+    }).reduce((sum, item) => sum + (item.quantity || 0), 0);
+    
+    // Broken/Lost: Count of items flagged with bad condition
+    const damagedQty = inventoryItems.filter(item => {
+        const c = (item.condition || '').toLowerCase();
+        return c === 'lost' || c === 'stolen' || c === 'damaged' || c === 'lost/stolen';
+    }).reduce((sum, item) => sum + (item.quantity || 0), 0);
 
-    document.getElementById('stat-total-items').textContent = totalItems;
-    document.getElementById('stat-total-qty').textContent = availableItems;
-    document.getElementById('stat-low-stock').textContent = issuedItems;
-    document.getElementById('stat-out-of-stock').textContent = availableItems;
+    // In Stock: Available items (not assigned/issued and not damaged/lost)
+    const availableQty = inventoryItems.filter(item => {
+        const s = (item.status || '').toLowerCase();
+        const c = (item.condition || '').toLowerCase();
+        const isBad = c === 'lost' || c === 'stolen' || c === 'damaged' || c === 'lost/stolen';
+        const isOut = s === 'issued' || s === 'assigned';
+        return !isBad && !isOut;
+    }).reduce((sum, item) => sum + (item.quantity || 0), 0);
+
+    const totalEl = document.getElementById('stat-total-items'); // Changed back to total-items
+    const availableEl = document.getElementById('stat-available'); // In Stock (Units)
+    const issuedEl = document.getElementById('stat-issued'); // Assigned/Issued
+    const damagedEl = document.getElementById('stat-damaged'); // Broken/Lost
+
+    if (totalEl) totalEl.textContent = totalItems;
+    if (availableEl) availableEl.textContent = availableQty;
+    if (issuedEl) issuedEl.textContent = assignedQty;
+    if (damagedEl) damagedEl.textContent = damagedQty;
 }
 
 // ============================================
@@ -148,7 +195,9 @@ function updateSummaryCards() {
 // ============================================
 function getItemStatus(item) {
     const status = (item.status || 'available').toLowerCase();
+    if (status === 'assigned') return { label: 'Assigned', class: 'status-assigned' };
     if (status === 'issued') return { label: 'Issued', class: 'status-issued' };
+    if (status === 'transferred') return { label: 'Transferred', class: 'status-transferred' };
     return { label: 'Available', class: 'in-stock' };
 }
 
@@ -176,6 +225,11 @@ function applyFilters() {
     const statusFilter = document.getElementById('filter-status')?.value || '';
 
     filteredItems = inventoryItems.filter(item => {
+        // Exclude broken/lost items from the main inventory list view
+        const cond = (item.condition || '').toLowerCase();
+        const isBad = cond === 'lost' || cond === 'stolen' || cond === 'damaged' || cond === 'lost/stolen';
+        if (isBad) return false;
+
         const matchesSearch = item.item_name.toLowerCase().includes(searchTerm) ||
                               (item.id && item.id.toLowerCase().includes(searchTerm));
         const matchesDept = !deptFilter || (item.department || item.location) === deptFilter;
@@ -205,6 +259,7 @@ function applyFilters() {
 // VIEW LOGIC
 // ============================================
 function getBaseName(name) {
+    if (!name) return 'Unknown Item';
     return name.replace(/ - \d{3}$/, '').trim();
 }
 
@@ -221,18 +276,14 @@ function renderInventoryView() {
 }
 
 function renderSummaryTable() {
-    // Group filtered items by Brand+Type (priority) or Base Name
+    // Group filtered items by Category
     const groups = new Map();
     filteredItems.forEach(item => {
-        let groupKey = getBaseName(item.item_name);
-        if (item.brand && item.type) {
-             groupKey = `${item.brand} ${item.type}`;
-        }
-        
-        groupKey = `${groupKey}::${item.department || item.location || 'N/A'}`;
+        let groupKey = item.category || 'Uncategorized';
+        // Removed department from key to group strictly by Category
         
         if (!groups.has(groupKey)) {
-            const baseName = (item.brand && item.type) ? `${item.brand} ${item.type}` : getBaseName(item.item_name);
+            const baseName = item.category || 'Uncategorized';
             
             groups.set(groupKey, {
                 baseName,
@@ -266,18 +317,18 @@ function renderSummaryTable() {
 
     const groupList = Array.from(groups.values());
 
-    thead.innerHTML = `<tr>
-        <th class="th-checkbox" style="width: 40px;"></th>
+    const thead = document.getElementById('inventory-thead');
+    if (thead) {
+        thead.innerHTML = `<tr>
+            <th class="th-checkbox" style="width: 40px;"></th>
         <th>Item / Type</th>
-        <th>Category</th>
-        <th>Department</th>
-        <th>Assigned To</th>
         <th>Total Qty</th>
         <th>Date Added</th>
         <th>Last Updated</th>
         <th>Status</th>
         <th>Actions</th>
-    </tr>`;
+        </tr>`;
+    }
 
     // ... (rest of rendering) ...
     const tableBody = document.getElementById('inventory-list');
@@ -324,20 +375,16 @@ function renderSummaryTable() {
 
         row.innerHTML = `
             <td></td>
-            <td class="td-name" style="font-weight: 600;">
-                ${group.baseName}
-                <div style="font-size: 0.85em; color: #666; font-weight: normal;">${group.category}</div>
+            <td class="td-name" style="font-weight: 700; padding: 15px 15px; font-size: 1.05rem; color: var(--primary-blue);">
+                <div style="margin-bottom: 4px;">${group.baseName}</div>
             </td>
-            <td>${group.category}</td>
-            <td>${group.department || 'N/A'}</td>
-            <td>${assignedDisplay}</td>
             <td class="td-qty" style="font-weight: bold;">${group.quantity}</td>
             <td>${dateAdded}</td>
             <td>${lastUpdated}</td>
             <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
             <td>
                 <button class="btn-primary" style="padding: 6px 12px; font-size: 13px;" onclick="viewCondition('${group.groupKey.replace(/'/g, "\\'")}')">
-                    View Condition
+                    View Items
                 </button>
             </td>
         `;
@@ -351,9 +398,7 @@ function renderSummaryTable() {
 // DETAIL VIEW HELPERS
 // ============================================
 function getGroupKey(item) {
-    let key = getBaseName(item.item_name);
-    if (item.brand && item.type) key = `${item.brand} ${item.type}`;
-    return `${key}::${item.department || item.location || 'N/A'}`;
+    return item.category || 'Uncategorized';
 }
 
 function viewCondition(groupKey) {
@@ -381,6 +426,8 @@ function renderDetailTable() {
         <th>SKU</th>
         <th>Item Name</th>
         <th>Brand/Type</th>
+        <th>Department</th>
+        <th>Supplier</th>
         <th>Condition</th>
         <th>Assigned To</th>
         <th>Status</th>
@@ -404,11 +451,10 @@ function renderDetailTable() {
     const backRow = document.createElement('tr');
     
     // Parse group key for display
-    const [baseNamePart, deptNamePart] = detailGroupBaseName.split('::');
-    const displayText = (deptNamePart && deptNamePart !== 'N/A') ? `${baseNamePart} (${deptNamePart})` : baseNamePart;
+    const displayText = detailGroupBaseName;
 
     backRow.innerHTML = `
-        <td colspan="8" style="padding: 10px; background: #f8f9fa;">
+        <td colspan="10" style="padding: 10px; background: #f8f9fa;">
             <button onclick="backToSummary()" style="display: flex; align-items: center; gap: 8px; border: none; background: transparent; color: #1967d2; cursor: pointer; font-weight: 500;">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
                 Back to ${displayText} Summary
@@ -439,19 +485,22 @@ function renderDetailTable() {
         const brandType = (item.brand && item.type) ? `${item.brand} ${item.type}` : '-';
 
         const assignedTo = item.assigned_user?.full_name || 'Unassigned';
+        const supplier = item.supplier || '-';
 
         let html = `
             <td class="td-checkbox"><input type="checkbox" class="row-checkbox" value="${item.id}" ${isChecked} onchange="toggleRowSelect(this)"></td>
             <td class="td-sku">${item.id}</td>
             <td class="td-name">${item.item_name}</td>
             <td>${brandType}</td>
+            <td><span style="font-size: 0.9rem; color: #666;">${item.department || item.location || 'N/A'}</span></td>
+            <td><span style="font-size: 0.9rem; color: #666;">${supplier}</span></td>
             <td><span class="status-badge" style="background: #e8f0fe; color: #1967d2;">${condition}</span></td>
             <td>${assignedTo}</td>
             <td><span class="status-badge ${status.class}">${status.label}</span></td>
             <td>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    <button onclick="openViewModal('${item.id}')" title="View Details" style="border: none; background: transparent; cursor: pointer; padding: 4px; display: flex;">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#666"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    <button onclick="openViewModal('${item.id}')" title="View Info" style="border: none; background: transparent; cursor: pointer; padding: 4px; display: flex;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="#666"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v8z"/></svg>
                     </button>
                     <button onclick="openEditModal('${item.id}')" title="Edit Item" style="border: none; background: transparent; cursor: pointer; padding: 4px; display: flex;">
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="#2979ff"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
@@ -726,6 +775,38 @@ async function openViewModal(itemId) {
     document.getElementById('view-updated').textContent = item.updated_at ? new Date(item.updated_at).toLocaleString() : 'N/A';
     document.getElementById('view-created').textContent = item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A';
 
+    // Show Assignment Info based on status
+    const assignedRow = document.getElementById('view-assigned-row');
+    const assignedVal = document.getElementById('view-assigned');
+    const assignedLabel = assignedRow ? assignedRow.querySelector('.label') : null;
+
+    if (item.status === 'assigned') {
+        const userName = item.assigned_user?.full_name || 'Staff Member';
+        if (assignedLabel) assignedLabel.textContent = 'ASSIGNED TO:';
+        assignedVal.textContent = userName;
+        assignedRow.style.display = 'flex';
+        assignedRow.style.justifyContent = 'space-between';
+        assignedRow.style.background = '#e8f0fe'; // Light blue for assigned
+        assignedRow.style.color = '#1967d2';
+    } else if (item.status === 'issued') {
+        const userName = item.assigned_user?.full_name || 'Particular User/Dept';
+        if (assignedLabel) assignedLabel.textContent = 'ISSUED TO:';
+        assignedVal.textContent = userName;
+        assignedRow.style.display = 'flex';
+        assignedRow.style.justifyContent = 'space-between';
+        assignedRow.style.background = '#fef7e0'; // Light gold for issued
+        assignedRow.style.color = '#b06000';
+    } else if (item.status === 'transferred') {
+        if (assignedLabel) assignedLabel.textContent = 'CURRENT LOCATION:';
+        assignedVal.textContent = item.location || item.department || 'Transit';
+        assignedRow.style.display = 'flex';
+        assignedRow.style.justifyContent = 'space-between';
+        assignedRow.style.background = '#f3e5f5'; // Light purple for transferred
+        assignedRow.style.color = '#7b1fa2';
+    } else {
+        assignedRow.style.display = 'none';
+    }
+
     const descText = document.getElementById('view-description');
     descText.textContent = item.description || 'No description provided.';
 
@@ -926,9 +1007,9 @@ async function handleItemSubmit(event) {
     if (brand) itemData.brand = brand;
     if (type) itemData.type = type;
 
-    // For new items, set initial quantity to 0
+    // For new items, set initial quantity to 1 (default to one record = one item)
     if (!itemId) {
-        itemData.quantity = 0;
+        itemData.quantity = 1;
     }
     
     // Add supplier
@@ -979,6 +1060,7 @@ async function handleItemSubmit(event) {
     
     closeItemModal();
     await loadInventoryItems();
+    await refreshDropdowns();
 }
 
 // ============================================
@@ -1009,25 +1091,90 @@ async function deleteItem(itemId) {
 // ============================================
 // DYNAMIC OPTION MANAGEMENT
 // ============================================
-function checkNewOption(select, type) {
+async function refreshDropdowns() {
+    try {
+        const { data: categories } = await supabaseApi.getDistinctCategories();
+        const { data: departments } = await supabaseApi.getDistinctDepartments();
+
+        const categorySelects = ['item-category', 'bulk-category', 'filter-category', 'export-category'];
+        const departmentSelects = ['item-department', 'bulk-department', 'filter-department', 'export-department'];
+
+        populateSelectOptions(categorySelects, categories, 'Category');
+        populateSelectOptions(departmentSelects, departments, 'Department');
+    } catch (err) {
+        console.error('Failed to refresh dropdowns:', err);
+    }
+}
+
+function populateSelectOptions(selectIds, values, type) {
+    selectIds.forEach(id => {
+        const select = document.getElementById(id);
+        if (!select) return;
+
+        // Keep the first placeholder option (e.g. "Select Category")
+        const firstOption = select.options[0];
+        const currentValue = select.value;
+        
+        select.innerHTML = '';
+        if (firstOption) select.appendChild(firstOption);
+
+        // Add distinct values from database
+        values.forEach(val => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = val;
+            select.appendChild(opt);
+        });
+
+        // Restore value if it still exists
+        if (currentValue && values.includes(currentValue)) {
+            select.value = currentValue;
+        }
+
+        // Add "-add new-" option for non-filter selects
+        if (!id.startsWith('filter-') && !id.startsWith('export-')) {
+            const addNew = document.createElement('option');
+            addNew.value = '-add-new-';
+            addNew.textContent = '-add new-';
+            select.appendChild(addNew);
+        }
+    });
+}
+
+async function checkNewOption(select, type) {
     if (select.value === '-add-new-') {
-        const newValue = prompt(`Enter new ${type} name:`);
+        const newValue = await showPrompt(`Enter new ${type} name:`, '', `New ${type}`);
         if (newValue && newValue.trim() !== '') {
             const trimmedValue = newValue.trim();
+            
+            // Add to the current select immediately so user can continue
             const option = document.createElement('option');
             option.value = trimmedValue;
             option.textContent = trimmedValue;
             select.insertBefore(option, select.lastElementChild);
             select.value = trimmedValue;
 
-            // Also add to filter dropdown
-            const filterSelect = document.getElementById(type === 'category' ? 'filter-category' : 'filter-department');
-            if (filterSelect) {
-                const filterOption = document.createElement('option');
-                filterOption.value = trimmedValue;
-                filterOption.textContent = trimmedValue;
-                filterSelect.appendChild(filterOption);
-            }
+            // Sync with all other similar selects
+            const typeSelects = type === 'category' 
+                ? ['item-category', 'bulk-category', 'filter-category']
+                : ['item-department', 'bulk-department', 'filter-department'];
+            
+            typeSelects.forEach(id => {
+                const s = document.getElementById(id);
+                if (s && s !== select) {
+                    // Check if already exists before adding
+                    if (!Array.from(s.options).some(opt => opt.value === trimmedValue)) {
+                        const opt = document.createElement('option');
+                        opt.value = trimmedValue;
+                        opt.textContent = trimmedValue;
+                        if (id.startsWith('filter-')) {
+                            s.appendChild(opt);
+                        } else {
+                            s.insertBefore(opt, s.lastElementChild);
+                        }
+                    }
+                }
+            });
         } else {
             select.value = '';
         }
@@ -1184,6 +1331,7 @@ async function handleBulkAdd(event) {
     submitBtn.disabled = false;
     submitLabel.textContent = 'Create Items';
     await loadInventoryItems();
+    await refreshDropdowns();
 }
 
 // Close bulk modal on outside click

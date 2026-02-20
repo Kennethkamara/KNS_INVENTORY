@@ -189,7 +189,7 @@ const supabaseApi = {
             // Attempt 1: Full Query with User Details (JOINS)
             let query = supabaseClient
                 .from('inventory_items')
-                .select('*, assigned_user:assigned_to(full_name), last_user:last_used_by(full_name)')
+                .select('*, assigned_user:users!assigned_to(full_name)')
                 .order('item_name', { ascending: true });
 
             query = applyFilters(query);
@@ -212,6 +212,10 @@ const supabaseApi = {
 
         } catch (error) {
             console.error('Get inventory items exception:', error);
+            // Check for specific connection errors
+            if (error.message === 'Failed to fetch') {
+                console.error('Network error: Could not reach Supabase. Check your URL and Key.');
+            }
             return { data: null, error };
         }
     },
@@ -225,7 +229,7 @@ const supabaseApi = {
         try {
             const { data, error } = await supabaseClient
                 .from('inventory_items')
-                .select('*, assigned_user:assigned_to(full_name), last_user:last_used_by(full_name)')
+                .select('*, assigned_user:users!assigned_to(full_name)')
                 .eq('id', id)
                 .single();
 
@@ -233,6 +237,26 @@ const supabaseApi = {
         } catch (error) {
             console.error('Get inventory item error:', error);
             return { data: null, error };
+        }
+    },
+
+    /**
+     * Get inventory items assigned to a specific user
+     * @param {string} userId 
+     * @returns {Promise<{data, error}>}
+     */
+    async getAssignedItems(userId) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('inventory_items')
+                .select('*')
+                .eq('assigned_to', userId);
+            
+            if (error) throw error;
+            return { data, error: null };
+        } catch (error) {
+            console.error('Get assigned items error:', error);
+            return { data: [], error };
         }
     },
 
@@ -515,8 +539,8 @@ const supabaseApi = {
                 .from('stock_movements')
                 .select(`
                     *,
-                    inventory_items (item_name, category),
-                    users (full_name, email)
+                    inventory_items!item_id(item_name, category),
+                    users!user_id(full_name, email)
                 `)
                 .order('created_at', { ascending: false });
 
@@ -565,7 +589,8 @@ const supabaseApi = {
 
                 const { error: rpcError } = await supabaseClient.rpc('update_inventory_quantity', {
                     item_id: movementData.item_id,
-                    quantity_change: quantityChange
+                    quantity_change: quantityChange,
+                    p_assigned_to: movementData.assigned_to || null
                 });
 
                 if (rpcError) throw rpcError;
@@ -575,6 +600,25 @@ const supabaseApi = {
         } catch (error) {
             console.error('Create stock movement error:', error);
             return { data: null, error };
+        }
+    },
+
+    /**
+     * Clear all stock movements
+     * @returns {Promise<{error}>}
+     */
+    async clearStockMovements() {
+        try {
+            // Delete all rows where item_id is NOT a null UUID (effectively all rows since item_id is a foreign key)
+            const { error } = await supabaseClient
+                .from('stock_movements')
+                .delete()
+                .neq('item_id', '00000000-0000-0000-0000-000000000000');
+            
+            return { error };
+        } catch (error) {
+            console.error('Clear stock movements error:', error);
+            return { error };
         }
     },
 
@@ -689,7 +733,7 @@ const supabaseApi = {
     async fulfillRequest(requestId) {
         try {
             const { data, error } = await supabaseClient
-                .rpc('fulfill_request', { request_id: requestId });
+                .rpc('fulfill_request', { p_request_id: requestId });
 
             return { data, error };
         } catch (error) {
@@ -735,28 +779,61 @@ const supabaseApi = {
                 .from('users')
                 .update(data)
                 .eq('id', userId)
-                .select()
-                .single();
-
             if (!error) return { data: updated, error: null };
 
-            console.warn('Standard user role update failed (PATCH), attempting Upsert (POST) fallback...', error);
-
-            // Attempt 2: Upsert (POST)
+            console.warn('Standard user profile update failed (PATCH), attempting Upsert (POST) fallback...', error);
+            
             const upsertPayload = { ...data, id: userId };
             const { data: upsertData, error: upsertError } = await supabaseClient
                 .from('users')
                 .upsert(upsertPayload)
                 .select()
                 .single();
-
-            if (!upsertError) return { data: upsertData, error: null };
-            throw upsertError;
-
+            
+            return { data: upsertData, error: upsertError };
         } catch (error) {
-            console.error('Update user role error:', error);
+            console.error('Update user profile error:', error);
             return { data: null, error };
         }
+    },
+
+    // ============================================
+    // STORAGE ENDPOINTS (BUCKET: avatars)
+    // ============================================
+
+    /**
+     * Upload an image to storage
+     * @param {File} file 
+     * @param {string} path - e.g. "userId/avatar.png"
+     * @returns {Promise<{data, error}>}
+     */
+    async uploadImage(file, path) {
+        try {
+            const { data, error } = await supabaseClient.storage
+                .from('avatars')
+                .upload(path, file, {
+                    cacheControl: '3600',
+                    upsert: true
+                });
+            
+            return { data, error };
+        } catch (error) {
+            console.error('Upload image error:', error);
+            return { data: null, error };
+        }
+    },
+
+    /**
+     * Get public URL for a storage path
+     * @param {string} path 
+     * @returns {string}
+     */
+    getPublicUrl(path) {
+        const { data } = supabaseClient.storage
+            .from('avatars')
+            .getPublicUrl(path);
+        
+        return data.publicUrl;
     },
 
     /**
@@ -820,20 +897,28 @@ const supabaseApi = {
         try {
             const { email, password, full_name, role, department } = userData;
             
-            // Create auth user with auto-confirm
-            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-                email,
-                password,
-                options: {
-                    emailRedirectTo: window.location.origin + '/login.html',
+            // USE RAW FETCH to avoid session hijacking by the Supabase client
+            // 'credentials: omit' is the key to preventing the browser from saving the new session
+            const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({
+                    email,
+                    password,
                     data: {
                         full_name,
                         role
                     }
-                }
+                }),
+                credentials: 'omit' 
             });
 
-            if (authError) throw authError;
+            const authData = await response.json();
+            if (!response.ok || authData.error) throw authData.error || new Error('Signup failed');
 
             // Create user profile
             const { data: profileData, error: profileError } = await supabaseClient
@@ -844,7 +929,8 @@ const supabaseApi = {
                         full_name,
                         email,
                         role,
-                        department: department || null
+                        department: department || null,
+                        status: 'approved'
                     }
                 ])
                 .select()
@@ -934,7 +1020,11 @@ const supabaseApi = {
         try {
             let query = supabaseClient
                 .from('requests')
-                .select('*');
+                .select(`
+                    *,
+                    inventory_items (item_name, category),
+                    users (full_name, email)
+                `);
 
             if (startDate) query = query.gte('created_at', startDate);
             if (endDate) query = query.lte('created_at', endDate);

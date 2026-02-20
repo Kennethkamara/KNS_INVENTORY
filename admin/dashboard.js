@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial load
     await loadDashboardStats();
     await loadRecentMovements();
+    await loadIssuedItems();
 });
 
 async function loadDashboardStats() {
@@ -28,7 +29,10 @@ async function loadDashboardStats() {
 
     try {
         // 1. Total Items
-        const { data: inventory, error: invError } = await supabaseApi.getInventoryItems();
+        const { data: inventory, error: invError } = await supabaseClient
+            .from('inventory_items')
+            .select('*, assigned_user:users!assigned_to(full_name)')
+            .order('item_name', { ascending: true });
         if (invError) throw invError;
         
         if (inventory) {
@@ -113,5 +117,44 @@ async function loadRecentMovements() {
         console.warn('Recent movements fetch suppressed error:', error);
         // On error, just show "No recent movements" instead of technical error
         movementsContainer.innerHTML = '<div class="no-data">No recent movements</div>';
+    }
+}
+
+async function loadIssuedItems() {
+    const tableBody = document.getElementById('issued-items-list');
+    if (!tableBody) return;
+
+    try {
+        // Fetch items where status is 'issued'
+        const { data: inventory, error } = await supabaseApi.getInventoryItems();
+        if (error) throw error;
+
+        const issuedItems = (inventory || []).filter(item => item.status === 'issued');
+        
+        tableBody.innerHTML = '';
+
+        if (issuedItems.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No items currently issued</td></tr>';
+            return;
+        }
+
+        // Show most recent 10 issued items
+        const recentIssued = issuedItems
+            .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+            .slice(0, 10);
+
+        recentIssued.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${item.item_name}</strong></td>
+                <td>${item.assigned_user?.full_name || 'Unknown'}</td>
+                <td>${item.department || 'General'}</td>
+                <td>${new Date(item.updated_at).toLocaleDateString()}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error loading issued items:', error);
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">Failed to load issued items</td></tr>';
     }
 }

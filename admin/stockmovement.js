@@ -57,6 +57,14 @@ function populateDepartmentDropdowns() {
     if (searchInput) {
         searchInput.addEventListener('input', filterMovements);
     }
+
+    // Reset hidden ID on person input
+    const personInput = document.getElementById('mv-person');
+    if (personInput) {
+        personInput.addEventListener('input', () => {
+            document.getElementById('mv-person-id').value = '';
+        });
+    }
 });
 
 // ============================================
@@ -88,10 +96,24 @@ function setupSearchableDropdown() {
     // Filter function
     function filterItems(query) {
         const lowerQuery = query.toLowerCase();
-        return allInventoryItems.filter(item => 
-            item.item_name.toLowerCase().includes(lowerQuery) || 
-            item.id.toLowerCase().includes(lowerQuery)
-        ).slice(0, 50); // Limit results for performance
+        const type = document.getElementById('mv-type').value;
+        
+        return allInventoryItems.filter(item => {
+            const matchesQuery = item.item_name.toLowerCase().includes(lowerQuery) || 
+                               item.id.toLowerCase().includes(lowerQuery);
+            
+            // Logic: Issue is only for Available items
+            if (type === 'Issue' && (item.status || '').toLowerCase() === 'issued') {
+                return false;
+            }
+
+            // Return is only for Issued items
+            if (type === 'Return' && (item.status || '').toLowerCase() !== 'issued') {
+                return false;
+            }
+
+            return matchesQuery;
+        }).slice(0, 50);
     }
 
     // Render dropdown
@@ -104,9 +126,15 @@ function setupSearchableDropdown() {
 
         items.forEach(item => {
             const div = document.createElement('div');
-            div.className = 'dropdown-option';
+            const isIssued = (item.status || '').toLowerCase() === 'issued';
+            div.className = `dropdown-option ${isIssued ? 'is-issued' : ''}`;
+            const statusLabel = isIssued ? '<span class="status-badge status-issued">ISSUED</span>' : '';
+            
             div.innerHTML = `
-                <div style="font-weight: 500;">${item.item_name}</div>
+                <div style="font-weight: 500; display: flex; justify-content: space-between;">
+                    ${item.item_name}
+                    ${statusLabel}
+                </div>
                 <span class="item-meta">SKU: ${item.id} | Qty: ${item.quantity} | ${item.department || item.location || 'N/A'}</span>
             `;
             div.onclick = () => selectItem(item);
@@ -129,12 +157,12 @@ function setupSearchableDropdown() {
 
     input.addEventListener('focus', () => {
         const query = input.value;
-        const filtered = query ? filterItems(query) : allInventoryItems.slice(0, 50);
+        const filtered = filterItems(query);
         renderDropdown(filtered);
         dropdown.classList.add('show');
     });
 
-    // Hide dropdown on click outside (blur handling is tricky with click)
+    // Hide dropdown on click outside
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.searchable-select')) {
             dropdown.classList.remove('show');
@@ -142,6 +170,9 @@ function setupSearchableDropdown() {
             // Also close person dropdown
             const personDropdown = document.getElementById('mv-person-dropdown');
             if (personDropdown) personDropdown.classList.remove('show');
+            
+            // If user typed a name but didn't select, clear the hidden ID if they select something later
+            // but let's keep it simple for now.
         }
     });
 }
@@ -151,7 +182,8 @@ function selectItem(item) {
     const hiddenInput = document.getElementById('mv-item');
     const dropdown = document.getElementById('mv-item-dropdown');
 
-    input.value = `${item.item_name} (${item.id})`;
+    const statusLabel = (item.status || 'available').toUpperCase();
+    input.value = `${item.item_name} [${statusLabel}] (${item.id})`;
     hiddenInput.value = item.id;
     dropdown.classList.remove('show');
 }
@@ -197,6 +229,7 @@ function setupPersonSearchableDropdown() {
             `;
             div.onclick = () => {
                 input.value = user.full_name;
+                document.getElementById('mv-person-id').value = user.id;
                 dropdown.classList.remove('show');
             };
             dropdown.appendChild(div);
@@ -222,21 +255,30 @@ function setupPersonSearchableDropdown() {
 // LOAD STOCK MOVEMENTS
 // ============================================
 async function loadStockMovements() {
-    const { data, error } = await supabaseApi.getStockMovements();
-    
-    // Instead of showing error, just treat as empty
-    if (error) {
-        console.warn('Stock movement fetch suppressed error:', error);
-        allMovements = [];
-    } else {
+    const tableBody = document.getElementById('movements-list');
+    try {
+        const { data, error } = await supabaseApi.getStockMovements();
+        
+        if (error) {
+            console.error('Stock movement fetch error:', error);
+            if (tableBody) {
+                tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 40px; color: red;">⚠️ <b>Error loading movements:</b> ${error.message}</td></tr>`;
+            }
+            allMovements = [];
+            return;
+        }
+
         allMovements = (data || []).map(m => ({
             ...m,
             display_type: parseDisplayType(m),
             ref_id: generateRefId(m)
         }));
+    } catch (err) {
+        console.error('Fatal error loading stock movements:', err);
+        allMovements = [];
     }
     
-    filterMovements(); // This triggers "No stock movements found"
+    filterMovements(); 
 }
 
 // ============================================
@@ -331,12 +373,17 @@ function displayMovements() {
         row.innerHTML = `
             <td>${date}</td>
             <td class="td-sku">${movement.ref_id}</td>
-            <td>${movement.inventory_items?.item_name || 'Unknown'}</td>
+            <td>${movement.inventory_items?.item_name || 'Unknown Item'}</td>
             <td><span class="${badgeClass}">${movement.display_type}</span></td>
             <td>${source}</td>
             <td>${destination}</td>
             <td>${movement.users?.full_name || 'System'}</td>
             <td class="td-remarks">${remarks || '-'}</td>
+            <td>
+                <button class="btn-info" onclick="openMovementInfo('${movement.id}')" title="View Details" style="border: none; background: #e8f0fe; color: #1967d2; cursor: pointer; padding: 6px; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v8z"/></svg>
+                </button>
+            </td>
         `;
 
         tableBody.appendChild(row);
@@ -379,6 +426,7 @@ function openMovementModal() {
     document.getElementById('movement-form').reset();
     document.getElementById('mv-item').value = '';
     document.getElementById('mv-item-display').value = '';
+    document.getElementById('mv-person-id').value = '';
     document.getElementById('mv-writeoff-fields').style.display = 'none';
     const submitBtn = document.getElementById('mv-submit-btn');
     submitBtn.style.background = '';
@@ -392,6 +440,38 @@ function closeMovementModal() {
     document.getElementById('mv-item').value = '';
     document.getElementById('mv-item-display').value = '';
     document.getElementById('mv-writeoff-fields').style.display = 'none';
+}
+
+// Info Modal Helpers
+function openMovementInfo(movementId) {
+    const movement = allMovements.find(m => m.id === movementId);
+    if (!movement) return;
+
+    const modal = document.getElementById('movement-info-modal');
+    
+    document.getElementById('info-ref-id').textContent = movement.ref_id;
+    document.getElementById('info-date').textContent = new Date(movement.created_at).toLocaleString();
+    document.getElementById('info-item-name').textContent = movement.inventory_items?.item_name || 'Unknown Item';
+    document.getElementById('info-item-id').textContent = movement.item_id || '-';
+    
+    const typeBadge = document.getElementById('info-type');
+    typeBadge.textContent = movement.display_type;
+    typeBadge.className = getMovementBadgeClass(movement.display_type);
+
+    document.getElementById('info-from').textContent = movement.from_location || '-';
+    document.getElementById('info-to').textContent = movement.to_location || '-';
+    document.getElementById('info-user').textContent = movement.users?.full_name || 'System';
+    document.getElementById('info-qty').textContent = movement.quantity || 1;
+    
+    let remarks = movement.reason || 'No remarks provided.';
+    remarks = remarks.replace(/\[(Issue|Return|Transfer|Lost\/Stolen|Damaged)\]\s*/gi, '');
+    document.getElementById('info-remarks').textContent = remarks;
+
+    modal.classList.add('show');
+}
+
+function closeInfoModal() {
+    document.getElementById('movement-info-modal').classList.remove('show');
 }
 
 function onMovementTypeChange() {
@@ -427,6 +507,7 @@ async function recordMovement(event) {
     const itemId = document.getElementById('mv-item').value;
     const movementType = document.getElementById('mv-type').value;
     const person = document.getElementById('mv-person').value.trim();
+    const personId = document.getElementById('mv-person-id').value;
     const fromLocation = document.getElementById('mv-from').value;
     const toLocation = document.getElementById('mv-to').value;
     const remarks = document.getElementById('mv-remarks').value;
@@ -477,7 +558,8 @@ async function recordMovement(event) {
         quantity: 1,
         reason: reason,
         from_location: fromLocation || null,
-        to_location: toLocation || null
+        to_location: toLocation || null,
+        assigned_to: (movementType === 'Issue' && personId) ? personId : null
     };
 
     const submitBtn = document.getElementById('mv-submit-btn');
@@ -516,6 +598,14 @@ async function recordMovement(event) {
         // Mark item as Available again
         await supabaseApi.updateInventoryItem(itemId, { status: 'available' });
         showToast('Item returned and marked as Available!', 'success');
+    } else if (movementType === 'Transfer') {
+        // Update item location and mark as Transferred
+        await supabaseApi.updateInventoryItem(itemId, { 
+            location: toLocation,
+            department: toLocation, // Assume department matches center/campus for transfers
+            status: 'transferred'
+        });
+        showToast(`Item transferred to ${toLocation} successfully!`, 'success');
     } else {
         showToast('Movement recorded successfully!', 'success');
     }

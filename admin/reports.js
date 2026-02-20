@@ -496,3 +496,38 @@ async function exportData() {
     exportToExcel(sheetData, `Full_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`, 'FULL INVENTORY EXPORT');
     showToast('Full inventory exported', 'success');
 }
+
+/**
+ * Reset Stock Movement History
+ */
+async function resetStockHistory() {
+    const isConfirmed = await showConfirm(
+        '⚠️ CRITICAL ACTION: Are you sure you want to PERMANENTLY delete ALL stock movement history?',
+        'Yes, Clear History',
+        'Cancel'
+    );
+
+    if (!isConfirmed) return;
+
+    try {
+        showToast('Clearing history...', 'info');
+        const { error } = await supabaseApi.clearStockMovements();
+        
+        if (error) throw error;
+
+        showToast('✅ Stock movement history has been reset.', 'success');
+        
+        // Refresh current report if it's a movement report
+        const reportContainer = document.getElementById('report-container');
+        if (reportContainer && reportContainer.style.display !== 'none') {
+            const title = reportContainer.querySelector('h3')?.innerText || '';
+            if (title.includes('Movement')) {
+                generateStockMovementReport();
+            }
+        }
+    } catch (err) {
+        console.error('Failed to reset history:', err);
+        showToast('Failed to reset history: ' + err.message, 'error');
+    }
+}
+

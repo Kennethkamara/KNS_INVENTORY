@@ -11,7 +11,9 @@ END $$;
 
 -- 2. Update Fulfill Request RPC to include assignment
 -- This overwrites the previous version to ensure assigned_to is set
-CREATE OR REPLACE FUNCTION fulfill_request(request_id uuid)
+DROP FUNCTION IF EXISTS public.fulfill_request(uuid);
+
+CREATE OR REPLACE FUNCTION public.fulfill_request(request_id uuid)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -42,6 +44,7 @@ BEGIN
   UPDATE public.inventory_items
   SET quantity = quantity - req_record.quantity,
       assigned_to = req_record.user_id,
+      status = 'assigned',
       updated_at = now()
   WHERE id = req_record.item_id;
 

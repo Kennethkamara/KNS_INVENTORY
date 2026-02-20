@@ -4,6 +4,12 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Fast Sidebar Init from local storage to prevent flickering
+    const cachedUser = getCurrentUserFromSession();
+    if (cachedUser) {
+        initializeSidebarUI(cachedUser);
+    }
+
     const loginForm = document.getElementById('loginForm');
     const signupForm = document.getElementById('signupForm');
 
@@ -74,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
 
             // Determine role (emails containing 'admin' are admins)
-            const role = email.toLowerCase().includes('admin') ? 'admin' : 'user';
+            const role = email.toLowerCase().includes('admin') ? 'admin' : 'staff';
 
             const { user, error } = await supabaseApi.signUp(email, password, fullName, role);
 
@@ -190,12 +196,45 @@ async function checkAuth(requiredRole) {
 
     // Check role permission
     if (requiredRole && profile.role.toLowerCase() !== requiredRole.toLowerCase()) {
-        alert('Access Denied: Insufficient permissions');
+        await showAlert('Access Denied: Insufficient permissions', 'Security Alert');
         window.location.href = loginPage;
         return null;
     }
 
+    // Initialize Sidebar UI
+    initializeSidebarUI(profile);
+
     return profile;
+}
+
+/**
+ * Initialize Sidebar with user info
+ */
+function initializeSidebarUI(user) {
+    if (!user) return;
+    
+    // Update Name
+    const nameEl = document.getElementById('displayUserName');
+    if (nameEl && user.full_name) {
+        nameEl.textContent = user.full_name;
+    }
+
+    // Update Role
+    const roleEl = document.getElementById('displayUserRole');
+    if (roleEl && user.role) {
+        roleEl.textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    }
+
+    // Update Avatar
+    const avatarContainer = document.querySelector('.user-profile .user-avatar');
+    if (avatarContainer) {
+        if (user.avatar_url) {
+            avatarContainer.innerHTML = `<img src="${user.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+        } else if (user.full_name) {
+            const initialsUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=0079d8&color=fff&size=64`;
+            avatarContainer.innerHTML = `<img src="${initialsUrl}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+        }
+    }
 }
 
 /**

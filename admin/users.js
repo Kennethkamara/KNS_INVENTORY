@@ -49,9 +49,9 @@ function populateDepartmentDropdowns() {
     });
 }
 
-function checkNewUserOption(select, type) {
+async function checkNewUserOption(select, type) {
     if (select.value === '-add-new-') {
-        const newValue = prompt(`Enter new ${type} name:`);
+        const newValue = await showPrompt(`Enter new ${type} name:`, '', `New ${type}`);
         if (newValue && newValue.trim() !== '') {
             const trimmedValue = newValue.trim();
             const option = document.createElement('option');
@@ -166,8 +166,15 @@ function nextUserStep() {
         const first = document.getElementById('user-first-name').value.trim();
         const last = document.getElementById('user-last-name').value.trim();
         const email = document.getElementById('user-email').value.trim();
+        const password = document.getElementById('user-password').value;
+        
         if (!first || !last || !email) {
             showToast('Please fill in Name and Email', 'warning');
+            return;
+        }
+        
+        if (!password || password.length < 6) {
+            showToast('Password must be at least 6 characters', 'warning');
             return;
         }
     }
@@ -206,6 +213,7 @@ function updateSummary() {
     document.getElementById('summary-email').textContent = email;
     document.getElementById('summary-phone').textContent = phone;
     document.getElementById('summary-role').textContent = `${role} (${dept})`;
+    document.getElementById('summary-password').textContent = document.getElementById('user-password').value;
     document.getElementById('summary-modules').textContent = modules.length > 0 ? modules.join(', ') : 'None';
     
     // Set text for success screen too
@@ -234,23 +242,25 @@ async function handleUserSubmit(event) {
     submitBtn.disabled = true;
 
     try {
-        // We use a dummy password for now since it's admin-created
-        // In a real app, you'd use a random string or send an invitation
-        const password = 'KNS' + Math.random().toString(36).slice(-8);
+        const password = document.getElementById('user-password').value;
         
-        const { user, error } = await supabaseApi.signUp(email, password, `${first} ${last}`, role.toLowerCase());
+        const { data, error } = await supabaseApi.createUserAsAdmin({
+            email,
+            password,
+            full_name: `${first} ${last}`,
+            role: role.toLowerCase(),
+            department: dept
+        });
 
         if (error) throw error;
 
-        // Add additional profile metadata if needed
-        await supabaseApi.updateUserProfile(user.id, {
-            department: dept,
-            status: 'approved' // Default to approved for admin-created users
-        });
-
-        // Show success step
+        // Show success screen
         showStep(4);
+        
+        // Refresh the list immediately so the admin sees the new user without refresh
         await loadUsers();
+        
+        showToast('User created successfully', 'success');
     } catch (error) {
         console.error('Error creating user:', error);
         showToast('Failed to create user: ' + error.message, 'error');

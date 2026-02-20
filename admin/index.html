@@ -15,7 +15,22 @@
                     <img src="../images/logo.png" alt="KNS Logo" class="logo-img">
                     <span class="logo-name">KNS Inventory</span>
                 </div>
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                </button>
             </div>
+            <script>
+                // Immediate state application to prevent layout shift
+                (function() {
+                    const isCollapsed = sessionStorage.getItem('sidebar_collapsed') === 'true';
+                    if (isCollapsed) {
+                        const sidebar = document.currentScript.parentElement;
+                        sidebar.classList.add('no-transition');
+                        sidebar.classList.add('collapsed');
+                        setTimeout(() => sidebar.classList.remove('no-transition'), 100);
+                    }
+                })();
+            </script>
             
             <nav class="sidebar-nav">
                 <ul>
@@ -54,7 +69,7 @@
                     </div>
                     <div class="user-info">
                         <span class="user-name" id="displayUserName">Admin User</span>
-                        <span class="user-role">Administrator</span>
+                        <span class="user-role" id="displayUserRole">Administrator</span>
                     </div>
                 </div>
                 <button class="logout-btn" onclick="logout()">
@@ -125,6 +140,29 @@
                     </div>
                 </div>
 
+                <!-- Currently Issued Items -->
+                <div class="dashboard-card shadow-sm">
+                    <div class="section-header">
+                        <h2>Currently Issued Items</h2>
+                        <a href="inventory.html?status=issued" class="view-all">View All</a>
+                    </div>
+                    <div class="inventory-table-container">
+                        <table class="inventory-table">
+                            <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Assigned To</th>
+                                    <th>Department</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="issued-items-list">
+                                <tr><td colspan="4" class="loading-state">Loading issued items...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Quick Actions -->
                 <div class="dashboard-card">
                     <h2>Quick Actions</h2>
@@ -142,7 +180,7 @@
                             <span>View Requests</span>
                         </button>
                         <button class="action-btn purple" onclick="window.location.href='reports.html'">
-                            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1( 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
                             <span>Generate Reports</span>
                         </button>
                     </div>

@@ -5,7 +5,7 @@
 let userRequests = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const user = await checkAuth('user');
+    const user = await checkAuth('staff');
     if (!user) return;
     
     // Display logged-in user's name
@@ -26,7 +26,7 @@ async function loadMyRequests() {
     
     if (error) {
         console.error('Error loading requests:', error);
-        alert('Failed to load your requests');
+        await showAlert('Failed to load your requests', 'Error');
         return;
     }
     

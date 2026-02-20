@@ -99,9 +99,141 @@ const UIUtils = {
                 if (e.target === modal) close(false);
             };
         });
+    },
+    /**
+     * Show a custom alert modal
+     * @param {string} message 
+     * @param {string} title 
+     * @returns {Promise<void>}
+     */
+    showAlert(message, title = 'Notification') {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'confirm-modal-overlay';
+            modal.innerHTML = `
+                <div class="confirm-modal-content">
+                    <div class="confirm-modal-header">
+                        <div class="confirm-icon info">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-4h-2V7h2v2z"/></svg>
+                        </div>
+                        <h3>${title}</h3>
+                    </div>
+                    <div class="confirm-modal-body">
+                        <p>${message}</p>
+                    </div>
+                    <div class="confirm-modal-footer">
+                        <button class="btn-confirm-ok">Okay</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            const close = () => {
+                modal.classList.add('hide');
+                modal.addEventListener('animationend', () => {
+                    modal.remove();
+                    resolve();
+                });
+            };
+            modal.querySelector('.btn-confirm-ok').onclick = close;
+            modal.onclick = (e) => { if (e.target === modal) close(); };
+        });
+    },
+
+    /**
+     * Show a custom prompt modal
+     * @param {string} message 
+     * @param {string} defaultValue 
+     * @param {string} title 
+     * @returns {Promise<string|null>}
+     */
+    showPrompt(message, defaultValue = '', title = 'Input Required') {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'confirm-modal-overlay';
+            modal.innerHTML = `
+                <div class="confirm-modal-content">
+                    <div class="confirm-modal-header">
+                        <div class="confirm-icon prompt">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm0 7V3.5L18.5 9H14zM8 13h8v2H8v-2zm0 4h8v2H8v-2z"/></svg>
+                        </div>
+                        <h3>${title}</h3>
+                    </div>
+                    <div class="confirm-modal-body">
+                        <p>${message}</p>
+                        <input type="text" class="modal-prompt-input" value="${defaultValue}">
+                    </div>
+                    <div class="confirm-modal-footer">
+                        <button class="btn-confirm-cancel">Cancel</button>
+                        <button class="btn-confirm-ok">Submit</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            const input = modal.querySelector('.modal-prompt-input');
+            input.focus();
+            input.select();
+
+            const close = (result = null) => {
+                modal.classList.add('hide');
+                modal.addEventListener('animationend', () => {
+                    modal.remove();
+                    resolve(result);
+                });
+            };
+            modal.querySelector('.btn-confirm-cancel').onclick = () => close(null);
+            modal.querySelector('.btn-confirm-ok').onclick = () => close(input.value);
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') close(input.value);
+                if (e.key === 'Escape') close(null);
+            };
+            modal.onclick = (e) => { if (e.target === modal) close(null); };
+        });
+    },
+
+    /**
+     * Toggle the sidebar collapsed state and save it to sessionStorage
+     */
+    toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            const isCollapsed = sidebar.classList.toggle('collapsed');
+            // Use sessionStorage to persist UI state across page navigations in the same tab
+            sessionStorage.setItem('sidebar_collapsed', isCollapsed);
+        }
+    },
+
+    /**
+     * Apply the saved sidebar state on page load
+     */
+    initSidebar() {
+        const isCollapsed = sessionStorage.getItem('sidebar_collapsed') === 'true';
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar && isCollapsed) {
+            // Disable transition during initialization to prevent "widening" flicker
+            sidebar.classList.add('no-transition');
+            sidebar.classList.add('collapsed');
+            
+            // Re-enable transitions after a short delay
+            setTimeout(() => {
+                sidebar.classList.remove('no-transition');
+            }, 100);
+        }
     }
 };
+
+// Apply sidebar state as soon as the DOM is ready to prevent flickering
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        UIUtils.initSidebar();
+    });
+} else {
+    // DOM is already ready
+    UIUtils.initSidebar();
+}
 
 // Expose globally
 window.showToast = UIUtils.showToast.bind(UIUtils);
 window.showConfirm = UIUtils.showConfirm.bind(UIUtils);
+window.showAlert = UIUtils.showAlert.bind(UIUtils);
+window.showPrompt = UIUtils.showPrompt.bind(UIUtils);
+window.toggleSidebar = UIUtils.toggleSidebar.bind(UIUtils);

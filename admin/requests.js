@@ -25,6 +25,24 @@ async function loadRequests() {
     
     allRequests = data || [];
     displayRequests(allRequests);
+    updateSummaryCards();
+}
+
+function updateSummaryCards() {
+    const pending = allRequests.filter(r => r.status === 'pending').length;
+    const approved = allRequests.filter(r => r.status === 'approved').length;
+    const fulfilled = allRequests.filter(r => r.status === 'fulfilled').length;
+    const rejected = allRequests.filter(r => r.status === 'rejected').length;
+    
+    const pEl = document.getElementById('pending-count');
+    const aEl = document.getElementById('approved-count');
+    const fEl = document.getElementById('fulfilled-count');
+    const rEl = document.getElementById('rejected-count');
+    
+    if (pEl) pEl.textContent = pending;
+    if (aEl) aEl.textContent = approved;
+    if (fEl) fEl.textContent = fulfilled;
+    if (rEl) rEl.textContent = rejected;
 }
 
 function displayRequests(requests) {
@@ -66,7 +84,7 @@ function displayRequests(requests) {
 }
 
 async function approveRequest(requestId) {
-    const notes = prompt('Add admin notes (optional):');
+    const notes = await showPrompt('Add admin notes (optional):', '', 'Approve Request');
     
     const { error } = await supabaseApi.updateRequestStatus(requestId, 'approved', notes || '');
     
@@ -81,10 +99,10 @@ async function approveRequest(requestId) {
 }
 
 async function rejectRequest(requestId) {
-    const notes = prompt('Reason for rejection:');
-    if (!notes) return;
+    const notes = await showPrompt('Reason for rejection:', '', 'Reject Request');
+    if (notes === null) return; // User cancelled
     
-    const { error } = await supabaseApi.updateRequestStatus(requestId, 'rejected', notes);
+    const { error } = await supabaseApi.updateRequestStatus(requestId, 'rejected', notes || '');
     
     if (error) {
         console.error('Error rejecting request:', error);
@@ -113,9 +131,12 @@ async function fulfillRequest(requestId) {
 }
 
 function filterRequests(status) {
+    const titleEl = document.getElementById('table-title');
     if (status === 'all') {
+        if (titleEl) titleEl.textContent = 'Recent Requests';
         displayRequests(allRequests);
     } else {
+        if (titleEl) titleEl.textContent = status.charAt(0).toUpperCase() + status.slice(1) + ' Requests';
         const filtered = allRequests.filter(r => r.status === status);
         displayRequests(filtered);
     }

@@ -16,7 +16,22 @@
                     <img src="../images/logo.png" alt="KNS Logo" class="logo-img">
                     <span class="logo-name">KNS Inventory</span>
                 </div>
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                </button>
             </div>
+            <script>
+                // Immediate state application to prevent layout shift
+                (function() {
+                    const isCollapsed = sessionStorage.getItem('sidebar_collapsed') === 'true';
+                    if (isCollapsed) {
+                        const sidebar = document.currentScript.parentElement;
+                        sidebar.classList.add('no-transition');
+                        sidebar.classList.add('collapsed');
+                        setTimeout(() => sidebar.classList.remove('no-transition'), 100);
+                    }
+                })();
+            </script>
             
             <nav class="sidebar-nav">
                 <ul>
@@ -55,7 +70,7 @@
                     </div>
                     <div class="user-info">
                         <span class="user-name" id="displayUserName">Admin User</span>
-                        <span class="user-role">Administrator</span>
+                        <span class="user-role" id="displayUserRole">Administrator</span>
                     </div>
                 </div>
                 <button class="logout-btn" onclick="logout()">
@@ -74,33 +89,40 @@
 
             <!-- Summary Boxes -->
             <div class="summary-boxes">
-                <div class="summary-box pending">
+                <div class="summary-box pending" onclick="filterRequests('pending')" style="cursor: pointer;">
                     <div class="summary-icon pending">
                         <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
                     </div>
                     <div class="summary-number" id="pending-count">0</div>
-                    <div class="summary-label">Pending Requests</div>
+                    <div class="summary-label">Pending</div>
                 </div>
-                <div class="summary-box approved">
+                <div class="summary-box approved" onclick="filterRequests('approved')" style="cursor: pointer;">
                     <div class="summary-icon approved">
                         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.47 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                     </div>
                     <div class="summary-number" id="approved-count">0</div>
-                    <div class="summary-label">Approved Requests</div>
+                    <div class="summary-label">Approved</div>
                 </div>
-                <div class="summary-box rejected">
+                <div class="summary-box fulfilled" onclick="filterRequests('fulfilled')" style="cursor: pointer;">
+                    <div class="summary-icon fulfilled">
+                        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    </div>
+                    <div class="summary-number" id="fulfilled-count">0</div>
+                    <div class="summary-label">Fulfilled</div>
+                </div>
+                <div class="summary-box rejected" onclick="filterRequests('rejected')" style="cursor: pointer;">
                     <div class="summary-icon rejected">
                         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.47 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zM15.41 7.41L12 10.83 8.59 7.41 7.17 8.83 10.59 12l-3.42 3.17 1.42 1.42L12 13.41l3.41 3.42 1.42-1.42L13.41 12l3.42-3.17z"/></svg>
                     </div>
                     <div class="summary-number" id="rejected-count">0</div>
-                    <div class="summary-label">Rejected Requests</div>
+                    <div class="summary-label">Rejected</div>
                 </div>
             </div>
 
             <!-- Pending Requests Table -->
             <div class="requests-table-container">
                 <div class="section-header">
-                    <h2>Pending Requests</h2>
+                    <h2 id="table-title">Recent Requests</h2>
                 </div>
                 <table class="inventory-table">
                         <thead>

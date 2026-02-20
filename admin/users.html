@@ -16,7 +16,22 @@
                     <img src="../images/logo.png" alt="KNS Logo" class="logo-img">
                     <span class="logo-name">KNS Inventory</span>
                 </div>
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                </button>
             </div>
+            <script>
+                // Immediate state application to prevent layout shift
+                (function() {
+                    const isCollapsed = sessionStorage.getItem('sidebar_collapsed') === 'true';
+                    if (isCollapsed) {
+                        const sidebar = document.currentScript.parentElement;
+                        sidebar.classList.add('no-transition');
+                        sidebar.classList.add('collapsed');
+                        setTimeout(() => sidebar.classList.remove('no-transition'), 100);
+                    }
+                })();
+            </script>
             
             <nav class="sidebar-nav">
                 <ul>
@@ -55,7 +70,7 @@
                     </div>
                     <div class="user-info">
                         <span class="user-name" id="displayUserName">Admin User</span>
-                        <span class="user-role">Administrator</span>
+                        <span class="user-role" id="displayUserRole">Administrator</span>
                     </div>
                 </div>
                 <button class="logout-btn" onclick="logout()">
@@ -151,6 +166,11 @@
                         <label for="user-phone">Phone Number</label>
                         <input type="tel" id="user-phone" placeholder="e.g. +232 00 000 000">
                     </div>
+                    <div class="form-group">
+                        <label for="user-password">Initial Password</label>
+                        <input type="password" id="user-password" required minlength="6" placeholder="Enter temporary password">
+                        <small style="color: #666; font-size: 0.75rem;">Minimum 6 characters. Give this to the user.</small>
+                    </div>
                 </div>
 
                 <!-- Step 2: Role & Access -->
@@ -227,6 +247,10 @@
                             <div class="confirmation-label">Assigned Role</div>
                             <div class="confirmation-value" id="summary-role"></div>
                         </div>
+                        <div class="confirmation-group">
+                            <div class="confirmation-label">Initial Password</div>
+                            <div class="confirmation-value" id="summary-password" style="font-family: monospace;"></div>
+                        </div>
                         <div class="confirmation-group" style="grid-column: span 2;">
                             <div class="confirmation-label">Module Access</div>
                             <div class="confirmation-value" id="summary-modules"></div>
@@ -234,7 +258,7 @@
                     </div>
                     <div class="important-notice" style="margin-top: 20px; font-size: 0.8rem; color: #666; display: flex; gap: 10px; align-items: flex-start; background: #eef6ff; padding: 12px; border-radius: 8px;">
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="#0079d8"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
-                        <span>An invitation email with setup instructions will be sent to the user's email address immediately after creation.</span>
+                        <span>The user can log in immediately with the password you provided. Please share the credentials securely with them.</span>
                     </div>
                 </div>
 

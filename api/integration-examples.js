@@ -15,6 +15,7 @@ Add these script tags before your page-specific JavaScript:
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js"></script>
 <script src="../api/supabase-api.js"></script>
+<script src="../ui-utils.js"></script>
 <script src="../auth.js"></script>
 */
 
@@ -45,7 +46,7 @@ async function loadInventoryItems() {
     
     if (error) {
         console.error('Error loading inventory:', error);
-        alert('Failed to load inventory items');
+        await showAlert('Failed to load inventory items', 'Error');
         return;
     }
     
@@ -90,11 +91,11 @@ async function createInventoryItem(formData) {
     
     if (error) {
         console.error('Error creating item:', error);
-        alert('Failed to create item');
+        await showAlert('Failed to create item: ' + error.message, 'Error');
         return;
     }
     
-    alert('Item created successfully!');
+    showToast('Item created successfully!', 'success');
     loadInventoryItems(); // Refresh the list
 }
 
@@ -114,11 +115,11 @@ async function updateInventoryItem(itemId, formData) {
     
     if (error) {
         console.error('Error updating item:', error);
-        alert('Failed to update item');
+        await showAlert('Failed to update item: ' + error.message, 'Error');
         return;
     }
     
-    alert('Item updated successfully!');
+    showToast('Item updated successfully!', 'success');
     loadInventoryItems();
 }
 
@@ -127,17 +128,18 @@ async function updateInventoryItem(itemId, formData) {
 // ============================================
 
 async function deleteItem(itemId) {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+    const confirmed = await showConfirm('Are you sure you want to delete this item?');
+    if (!confirmed) return;
     
     const { error } = await supabaseApi.deleteInventoryItem(itemId);
     
     if (error) {
         console.error('Error deleting item:', error);
-        alert('Failed to delete item');
+        await showAlert('Failed to delete item', 'Error');
         return;
     }
     
-    alert('Item deleted successfully!');
+    showToast('Item deleted successfully!', 'success');
     loadInventoryItems();
 }
 
@@ -160,11 +162,11 @@ async function submitRequest(itemId, quantity, reason) {
     
     if (error) {
         console.error('Error submitting request:', error);
-        alert('Failed to submit request');
+        await showAlert('Failed to submit request: ' + error.message, 'Error');
         return;
     }
     
-    alert('Request submitted successfully!');
+    showToast('Request submitted successfully!', 'success');
 }
 
 // ============================================
@@ -180,11 +182,11 @@ async function updateRequestStatus(requestId, status, adminNotes = '') {
     
     if (error) {
         console.error('Error updating request:', error);
-        alert('Failed to update request');
+        await showAlert('Failed to update request', 'Error');
         return;
     }
     
-    alert(`Request ${status} successfully!`);
+    showToast(`Request ${status} successfully!`, 'success');
     loadRequests(); // Refresh the list
 }
 
@@ -193,17 +195,18 @@ async function updateRequestStatus(requestId, status, adminNotes = '') {
 // ============================================
 
 async function fulfillRequest(requestId) {
-    if (!confirm('This will update inventory. Continue?')) return;
+    const confirmed = await showConfirm('This will update inventory. Continue?');
+    if (!confirmed) return;
     
     const { data, error } = await supabaseApi.fulfillRequest(requestId);
     
     if (error) {
         console.error('Error fulfilling request:', error);
-        alert('Failed to fulfill request: ' + error.message);
+        await showAlert('Failed to fulfill request: ' + error.message, 'Error');
         return;
     }
     
-    alert('Request fulfilled and inventory updated!');
+    showToast('Request fulfilled and inventory updated!', 'success');
     loadRequests();
     loadInventoryItems();
 }
@@ -318,11 +321,11 @@ async function changeUserRole(userId, newRole) {
     
     if (error) {
         console.error('Error updating role:', error);
-        alert('Failed to update user role');
+        await showAlert('Failed to update user role', 'Error');
         return;
     }
     
-    alert('User role updated successfully!');
+    showToast('User role updated successfully!', 'success');
     loadAllUsers();
 }
 

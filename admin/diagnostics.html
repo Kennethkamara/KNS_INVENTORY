@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Diagnostics - KNS Inventory</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .diag-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        .diag-status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+        .status-ok { background: #dcfce7; color: #166534; }
+        .status-error { background: #fee2e2; color: #991b1b; }
+        .table-count {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="../images/logo.png" alt="KNS Logo" class="logo-img">
+                    <span class="logo-name">KNS Inventory</span>
+                </div>
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li onclick="window.location.href='index.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                        <span>Dashboard</span>
+                    </li>
+                    <li onclick="window.location.href='inventory.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 13H4v-2h16v2zm0-4H4V7h16v2zm0 8H4v-2h16v2zM4 3v2h16V3H4z"/></svg>
+                        <span>Inventory</span>
+                    </li>
+                    <li onclick="window.location.href='stockmovement.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z"/></svg>
+                        <span>Stock Movement</span>
+                    </li>
+                    <li onclick="window.location.href='requests.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                        <span>Requests</span>
+                    </li>
+                    <li onclick="window.location.href='reports.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                        <span>Reports</span>
+                    </li>
+                    <li onclick="window.location.href='users.html'">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                        <span>Users</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="logout-btn" onclick="logout()" style="cursor:pointer">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                    <span>Logout</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-title">
+                    <h1>System Diagnostics</h1>
+                    <p>Database and connection status</p>
+                </div>
+                <button onclick="runDiagnostics()" class="btn-primary">Refresh</button>
+            </header>
+
+            <div class="diag-card">
+                <h3>Connection Info</h3>
+                <div id="conn-status" class="diag-status">Checking connection...</div>
+                <p><strong>Project URL:</strong> <span id="diag-url">...</span></p>
+                <p><strong>Authenticated User:</strong> <span id="diag-user">...</span></p>
+            </div>
+
+            <div class="diag-card">
+                <h3>Table Statistics</h3>
+                <div id="table-stats">
+                    <div class="table-count"><span>Users:</span> <span id="count-users">Loading...</span></div>
+                    <div class="table-count"><span>Inventory Items:</span> <span id="count-inventory">Loading...</span></div>
+                    <div class="table-count"><span>Stock Movements:</span> <span id="count-movements">Loading...</span></div>
+                    <div class="table-count"><span>Requests:</span> <span id="count-requests">Loading...</span></div>
+                </div>
+            </div>
+
+            <div class="diag-card" id="error-log-card" style="display:none;">
+                <h3 style="color:#dc2626">Error Details</h3>
+                <pre id="error-log" style="background:#f8f9fa; padding:12px; border-radius:6px; overflow-x:auto;"></pre>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../supabase-config.js"></script>
+    <script src="../api/supabase-api.js"></script>
+    <script src="../auth.js"></script>
+    <script>
+        async function runDiagnostics() {
+            const connStatus = document.getElementById('conn-status');
+            const errorLog = document.getElementById('error-log');
+            const errorCard = document.getElementById('error-log-card');
+            
+            errorCard.style.display = 'none';
+            document.getElementById('diag-url').textContent = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : 'MISSING';
+            
+            try {
+                // Check Auth
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+                if (authError) throw authError;
+                
+                document.getElementById('diag-user').textContent = user ? user.email : 'Not Logged In';
+                connStatus.textContent = '✅ Connected to Supabase';
+                connStatus.className = 'diag-status status-ok';
+
+                // Check Tables
+                const tables = ['users', 'inventory_items', 'stock_movements', 'requests'];
+                for (const table of tables) {
+                    const elId = 'count-' + (table === 'inventory_items' ? 'inventory' : table.split('_')[1] || table);
+                    const el = document.getElementById(elId);
+                    
+                    try {
+                        const { count, error } = await supabaseClient
+                            .from(table)
+                            .select('*', { count: 'exact', head: true });
+                        
+                        if (error) {
+                            el.textContent = '❌ Error: ' + error.message;
+                            el.style.color = 'red';
+                        } else {
+                            el.textContent = count + ' rows';
+                            el.style.color = count > 0 ? 'green' : 'orange';
+                        }
+                    } catch (e) {
+                        el.textContent = '❌ Exception: ' + e.message;
+                    }
+                }
+
+            } catch (err) {
+                connStatus.textContent = '❌ Connection Failed';
+                connStatus.className = 'diag-status status-error';
+                errorCard.style.display = 'block';
+                errorLog.textContent = err.message + '\n' + JSON.stringify(err, null, 2);
+            }
+        }
+
+        window.onload = runDiagnostics;
+    </script>
+</body>
+</html>
